@@ -78,7 +78,8 @@ org-anki 的缺点如下：
   (require 'anki-helper)
 #+end_src
 * 用法
-** 变量
+使用方法和 org-anki 类似。
+** 全局变量
 1. ~anki-helper-cloze-use-verbatim~
 
    是否将 verbatim(=) 视为 Cloze 的标记。如果为 ~t~ ，则文本
@@ -116,7 +117,22 @@ org-anki 的缺点如下：
 8. ~anki-helper-note-types~
 
    模板名称及其对应的字段
-** heanding 类型的卡片
+** file-local 的变量
+1. ~#+ANKI_DECK:~
+2. ~#+ANKI_MATCH:~
+3. ~#+ANKI_NOTE_TYPE:~
+4. ~#+ANKI_TAGS:~
+
+
+上述关键字分别对应相应的全局变量
+** Properties
+1. ~ANKI_NOTE_TYPE~
+2. ~ANKI_DECK~
+
+
+每个 heading 可以有各自的属性。上述变量的优先级为 ~Properties > file-local
+variables > global variables~ 。
+** heading 类型的卡片
 anki-helper 默认提供了一系列函数来对 heanding 类型的卡片进行操作（后续会增加更多
 操作）：
 *** 函数
