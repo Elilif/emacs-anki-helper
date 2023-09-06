@@ -27,16 +27,19 @@ org-anki 的缺点如下：
   | org-anki    | 123.855104s (35.423518s in 5 GCs) | 150.862886s (21.709634s in 8 GCs) |
   | anki-helper | 0.410945s                         | 0.098308s                         |
    
-2. 仅支持 heading
+2. 仅支持 heading ，模板字段填充方式僵硬
 
    org-anki 的另外一个问题是它只适用于 heading ，没有提供 API 来添加自定义的卡片
    制做函数。一个 heading 一张卡片的好处一是可以保存卡片的信息，如卡片 ID，是否
-   已经修改等，方便后续修改；二是可以对不同的 heading 进行不同操作。但是有些类型
-   的卡片是不需要这类额外的信息的，一个常见的例子就是单词卡片。我需要只是收集生
-   词，然后同步到 Anki ，后续几乎不会修改。显然一个单词一个 heading 是比较浪费的。
+   已经修改等，这样方便后续修改；二是可以对不同的 heading 进行不同操作。但是有些
+   类型的卡片是不需要这类额外的信息的，一个常见的例子就是单词卡片。我需要只是收
+   集生词，然后同步到 Anki ，后续几乎不会修改。显然一个单词一个 heading 是比较浪
+   费的。
 
-   最重要的一点是每个人的习惯不一样，所以必须要提供一套足够灵活的 API 来方便用户
-   创建自己的卡片制作函数。
+   org-anki 仅支持两种字段填充方式：一是标题行为卡片正面，内容为反面；二是使用子
+   标题来区分字段。后一种做法又回到了 anki-editor。这里的问题是每个人的习惯是不
+   一样的，自定义的模板也千奇百怪，所以必须要提供一套足够灵活的 API 来方便用户创
+   建自己的字段填充函数。
 
 3. 缺乏多媒体内容处理
    
@@ -79,7 +82,8 @@ org-anki 的缺点如下：
 #+end_src
 * 用法
 使用方法和 org-anki 类似。
-** 全局变量
+** 变量
+*** 全局变量
 1. ~anki-helper-cloze-use-verbatim~
 
    是否将 verbatim(=) 视为 Cloze 的标记。如果为 ~t~ ，则文本
@@ -117,7 +121,7 @@ org-anki 的缺点如下：
 8. ~anki-helper-note-types~
 
    模板名称及其对应的字段
-** file-local 的变量
+*** file-local 的变量
 1. ~#+ANKI_DECK:~
 2. ~#+ANKI_MATCH:~
 3. ~#+ANKI_NOTE_TYPE:~
@@ -125,7 +129,7 @@ org-anki 的缺点如下：
 
 
 上述关键字分别对应相应的全局变量
-** Properties
+*** Properties
 1. ~ANKI_NOTE_TYPE~
 2. ~ANKI_DECK~
 
@@ -155,3 +159,25 @@ anki-helper 默认提供了一系列函数来对 heanding 类型的卡片进行�
 6. ~anki-helper-entry-update-all~
 
    更新当前 buffer 中所有修改过的卡片。
+** 非 heading 类型的卡片
+anki-helper 提供了几个 API ：
+1. ~anki-helper-request~
+2. ~anki-helper-create-note~
+3. ~anki-helper-create-notes~
+
+
+具体用法详见函数文档。
+
+作为参考，您可以查阅 ~anki-helper-set-front-region~ 和
+~anki-helper-make-two-sided-card~ 两个函数，它们提供了一种交互式制卡的方式。
+* 修改默认的行为
+** 修改模板字段填充方式
+变量 ~anki-helper-fields-get-alist~ 设置了两个基本的字段获取函
+数：~anki-helper-fields-get-default~ 用于 Anki 默认的 Basic 模板，使用标题行为卡片
+正面，内容为卡片反面、~anki-helper-fields-get-cloze~ 用于 Anki 默认的 Cloze 模板，
+使用标题下的内容来填充 ~Text~ 字段，~Back Extra~ 字段留空。您可以定义自己的字段获取
+函数，详见 ~anki-helper-fields-get-alist~ 的文档。
+** 修改回调函数
+详见 ~anki-helper-callback-alist~
+
+
