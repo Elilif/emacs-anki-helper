@@ -23,6 +23,7 @@
 (require 'ox)
 (require 'org-element)
 (require 'org-macs)
+(require 'json)
 
 (defconst anki-helper-prop-note-id "ANKI_NOTE_ID")
 (defconst anki-helper-prop-note-hash "ANKI_NOTE_HASH")
@@ -79,6 +80,7 @@ global property."
 
 (defcustom anki-helper-media-directory "~/.local/share/Anki2/User 1/collection.media/"
   "Default Anki media directory."
+  :type 'directory
   :group 'anki-helper)
 
 ;; see:
@@ -88,6 +90,7 @@ global property."
                                        "oga" "ogg" "ogv" "ogx" "opus" "spx"
                                        "swf" "wav" "webm")
   "audio formats supported by Anki."
+  :type 'list
   :group 'anki-helper)
 
 (defcustom anki-helper-callback-alist
@@ -102,6 +105,7 @@ Used by `anki-helper--curl-sentinel'.
 FUNCTION is the function that calls `anki-helper-request'.
 
 CALLBACK is the callback function for FUNCTION."
+  :type 'alist
   :group 'anki-helper)
 
 (defcustom anki-helper-fields-get-alist
@@ -347,7 +351,6 @@ PROCESS and _STATUS are process parameters."
         (let* ((json-object-type 'plist)
                (json-array-type 'list)
                result)
-          (setq eli-result (buffer-string))
           (setq result (json-read))
           (if-let ((err (plist-get result :error)))
               (message err)
@@ -476,7 +479,7 @@ field in NOTE-TYPE.
 
 Example:
 
-(anki-helper--create-fields \"Basic\" '(\"front side\" \"back
+(anki-helper--create-fields \"Basic\" \\='(\"front side\" \"back
 side\")) ==> ((\"Front\" . \"front side\") (\"Back\" . \"back
 side\"))"
   (let* ((fields (anki-helper--get-note-fields note-type)))
