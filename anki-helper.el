@@ -12,6 +12,8 @@
 
 ;;; Commentary:
 ;; Create anki cards and sync them
+;; some functions and variables are stolen from
+;; https://github.com/eyeinsky/org-anki
 
 ;;; Code:
 
@@ -43,10 +45,16 @@
   :type 'string
   :group 'anki-helper)
 
+(defcustom anki-helper-allow-duplicates nil
+  "Allow duplicates."
+  :type '(choice (const :tag "Yes" t)
+                 (const :tag "No" nil))
+  :group 'anki-helper)
+
 (defcustom anki-helper-default-match nil
   "Default match used in `org-map-entries` for sync all."
   :type 'string
-  :group 'org-anki)
+  :group 'anki-helper)
 
 (defcustom anki-helper-default-deck "Default"
   "Default deck name.
@@ -158,7 +166,7 @@ landed on the moon in {{c1:1969}}\"."
     ("fields"    . ,(anki-helper--note-fields note))
     ("tags" . ,(or (anki-helper--note-tags note) ""))
     ("options" .
-     (("allowDuplicate" . :json-false)
+     (("allowDuplicate" . ,(or anki-helper-allow-duplicates :json-false))
       ("duplicateScope" . "deck")))))
 
 (defun anki-helper--action-addnote (note)
@@ -440,7 +448,7 @@ entry."
                      anki-helper-note-type
                      anki-helper-default-note-type))
          (fields (anki-helper--entry-get-fields note-type))
-         (maybe-id (org-entry-get nil org-anki-prop-note-id))
+         (maybe-id (org-entry-get nil anki-helper-prop-note-id))
          (deck (anki-helper--find-prop
                 anki-helper-prop-deck
                 anki-helper-default-deck))
@@ -586,7 +594,7 @@ See `org-map-entries', `anki-helper-skip-function' and
 `anki-helper--get-match' for details."
   (interactive)
   (when-let* ((result (anki-helper--entry-get-all
-                       (concat (format "-%s={.+}" org-anki-prop-note-id)
+                       (concat (format "-%s={.+}" anki-helper-prop-note-id)
                                (anki-helper--get-match))))
               (body (car result)))
     (anki-helper-request 'addNotes
@@ -613,7 +621,7 @@ See `org-map-entries', `anki-helper-entry-modified-p' and
 `anki-helper--get-match' for details."
   (interactive)
   (when-let* ((result (anki-helper--entry-get-all
-                       (concat (format "%s={.+}" org-anki-prop-note-id)
+                       (concat (format "%s={.+}" anki-helper-prop-note-id)
                                (anki-helper--get-match))
                        #'anki-helper-entry-modified-p))
               (body (mapcar #'anki-helper--action-updatenote (car result))))
@@ -641,11 +649,11 @@ See `org-map-entries' and `anki-helper--get-match' for details."
   (interactive)
   (when-let ((pairs (org-map-entries
                      (lambda ()
-                       (when-let ((id (org-entry-get nil org-anki-prop-note-id))
+                       (when-let ((id (org-entry-get nil anki-helper-prop-note-id))
                                   (marker (point-marker)))
                          (cons (string-to-number id) marker)))
                      (concat
-                      (format "%s={.+}" org-anki-prop-note-id)
+                      (format "%s={.+}" anki-helper-prop-note-id)
                       (anki-helper--get-match)))))
     (anki-helper-request 'deleteNotes
                          (mapcar #'car pairs)
@@ -659,7 +667,7 @@ See `org-map-entries' and `anki-helper--get-match' for details."
 See `anki-helper-entry-delete-all' for details."
   (interactive)
   (when-let ((id (string-to-number
-                  (org-entry-get nil org-anki-prop-note-id))))
+                  (org-entry-get nil anki-helper-prop-note-id))))
     (anki-helper-request 'deleteNotes
                          (list id)
                          (list :command 'anki-helper-entry-delete
