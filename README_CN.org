@@ -39,12 +39,14 @@ org-anki 的缺点如下：
    创建自己的卡片制作函数。
 
 3. 缺乏多媒体内容处理
+   
    针对图片处理的 PR 还没有合并，其他多媒体内容也不支持。
 
 
 我认为 anki-helper 比较好的解决了上述了个问题，同时增加了其他特点：
 
 1. 尽可能地保持原始文本内容不变
+   
    对于 Cloze 类型的卡片来说，常规的做法是使用 ~{{c1:xxx}}~ 这种形式，但是这会破坏
    原有内容，不利于其他操作。这其实是一种变相的专有化。我在设计 anki-helper 的时
    候注意到 org 文件在导出到 html 的时候，默认情况下 code 和 verbatim 都会变成
@@ -76,4 +78,64 @@ org-anki 的缺点如下：
   (require 'anki-helper)
 #+end_src
 * 用法
+** 变量
+1. ~anki-helper-cloze-use-verbatim~
 
+   是否将 verbatim(=) 视为 Cloze 的标记。如果为 ~t~ ，则文本
+   #+begin_example
+     =Canberra= was founded in =1913=.
+   #+end_example
+   在制卡的过程中会变成如下格式：
+   #+begin_example
+     {{c1::Canberra}} was founded in {{c2::1913}}.
+   #+end_example
+
+   *注意*: 不支持下述类型的转化：
+   #+begin_example
+     {{c1::Canberra}} was founded in {{c1::1913}}.
+   #+end_example
+
+2. ~anki-helper-default-note-type~
+
+   默认的卡片模板类型
+3. ~anki-helper-default-deck~
+
+   默认的卡组名称
+4. ~anki-helper-default-match~
+
+   用于筛选满足条件的 heading ，详见 ~org-map-entries~
+5. ~anki-helper-skip-function~
+
+   用于判断是否跳过某个 heading ，详见 ~org-map-entries~
+6. ~anki-helper-inherit-tags~
+
+   是否继承父标题的标签
+7. ~anki-helper-media-directory~
+
+   Anki 保存多媒体文件的目录
+8. ~anki-helper-note-types~
+
+   模板名称及其对应的字段
+** heanding 类型的卡片
+anki-helper 默认提供了一系列函数来对 heanding 类型的卡片进行操作（后续会增加更多
+操作）：
+*** 函数
+
+1. ~anki-helper-entry-sync~
+
+   将光标位置下的 heading 制成卡片，如果已经是卡片则忽略。
+2. ~anki-helper-entry-sync-all~
+
+   将当前 buffer 中所有满足条件的 headings 制成卡片，如果已经是卡片则忽略。
+3. ~anki-helper-entry-delete~
+
+   如果光标下的 heading 是卡片且满足条件，则删除。
+4. ~anki-helper-entry-delete-all~
+
+   删除当前 buffer 中所有满足条件的卡片。
+5. ~anki-helper-entry-update~
+
+   如果光标下的 heading 是卡片且有过修改，则更新。
+6. ~anki-helper-entry-update-all~
+
+   更新当前 buffer 中所有修改过的卡片。
