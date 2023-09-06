@@ -1,40 +1,63 @@
 ;;; anki-helper.el --- create anki cards and sync them -*- lexical-binding: t; -*-
 
-;; Author: Eli Qian <eli.q.qian@gmail.com>
-;; Url: https://github.com/Elilif/.elemacs
+;; Copyright (C) 2023  Eli Qian
 
-;; Version: 0.1
-;; Package-Requires: ((emacs "29.1"))
+;; Author: Eli Qian <eli.q.qian@gmail.com>
+;; URL: https://github.com/Elilif/emacs-anki-helper
 ;; Keywords: flashcards
+;; Version: 0.2.0
+;; Package-Requires: ((emacs "29.1"))
+
 ;; SPDX-License-Identifier: GPL-3.0-or-later
+
+;;; Commentary:
+;; Create anki cards and sync them
+
+;;; Code:
 
 (require 'cl-lib)
 (require 'thunk)
 (require 'org)
+(require 'ox)
 (require 'org-element)
 (require 'org-macs)
 
+(defconst anki-helper-prop-note-id "ANKI_NOTE_ID")
+(defconst anki-helper-prop-note-hash "ANKI_NOTE_HASH")
+(defconst anki-helper-prop-deck "ANKI_DECK")
+(defconst anki-helper-match "ANKI_MATCH")
+(defconst anki-helper-note-type "ANKI_NOTE_TYPE")
+(defconst anki-helper-prop-global-tags "ANKI_TAGS")
+
 (defgroup anki-helper nil
-  ""
+  "Customizations for anki-helper."
   :group 'applications)
+
+(defcustom anki-helper-ankiconnnect-listen-address "http://127.0.0.1:8765"
+  "The address of AnkiConnect"
+  :type 'string
+  :group 'anki-helper)
 
 (defcustom anki-helper-default-note-type "Basic"
   "Default note type."
   :type 'string
   :group 'anki-helper)
 
-(defcustom anki-helper-default-match "+LEVEL=1"
+(defcustom anki-helper-default-match nil
   "Default match used in `org-map-entries` for sync all."
   :type 'string
   :group 'org-anki)
 
 (defcustom anki-helper-default-deck "Default"
-  ""
+  "Default deck name.
+
+This variable will be used if none is set on the org item nor as
+global property."
   :type 'string
   :group 'anki-helper)
 
 (defcustom anki-helper-inherit-tags t
-  ""
+  "Inherit tags, set to nil to turn off."
   :type 'boolen
   :group 'anki-helper)
 
@@ -42,12 +65,12 @@
                                     ("Basic (and reversed card)" "Front" "Back")
                                     ("Basic (optional reversed card)" "Front" "Back")
                                     ("Cloze" "Text" "Back Extra"))
-  ""
+  "Default fields for note types."
   :group 'anki-helper
   :type '(repeat (list (repeat string))))
 
 (defcustom anki-helper-media-directory "~/.local/share/Anki2/User 1/collection.media/"
-  ""
+  "Default Anki media directory."
   :group 'anki-helper)
 
 ;; see:
@@ -56,23 +79,65 @@
                                        "mkv" "mov" "mp3" "mp4" "mpeg" "mpg"
                                        "oga" "ogg" "ogv" "ogx" "opus" "spx"
                                        "swf" "wav" "webm")
-  ""
+  "audio formats supported by Anki."
   :group 'anki-helper)
 
-(cl-defstruct anki-helper--note maybe-id fields tags deck model orig-pos callback)
+(defcustom anki-helper-callback-alist
+  '((anki-helper-entry-delete . anki-helper-entry-delete-callback)
+    (anki-helper-entry-delete-all . anki-helper-entry-delete-callback)
+    (anki-helper-entry-sync-all . anki-helper-entry-sync-callback)
+    (anki-helper-entry-update-all . anki-helper-entry-update-callback))
+  "Alist of (FUNCTION . CALLBACK) pairs.
+
+Used by `anki-helper--curl-sentinel'.
+
+FUNCTION is the function that calls `anki-helper-request'.
+
+CALLBACK is the callback function for FUNCTION."
+  :group 'anki-helper)
+
+(defcustom anki-helper-fields-get-alist
+  '(("Basic" . anki-helper-fields-get-default)
+    ("Cloze" . anki-helper-fields-get-cloze))
+  "Alist of (NOTE-TYPE . FUNCTION) pairs.
+
+Used by `anki-helper--entry-get-fields'.
+
+FUNCTION should return a list of string, where each string
+corresponds to a field in NOTE-TYPE."
+  :type 'alist
+  :group 'anki-helper)
+
+(defcustom anki-helper-skip-function nil
+  "Function used to skip entries.
+
+Given as the SKIP argument to org-map-entries, see its help for
+how to use it to include or skip an entry from being synced."
+  :type 'function
+  :group 'anki-helper)
+
+(defcustom anki-helper-cloze-use-verbatim nil
+  "Non-nil means verbatim text will be treated as cloze deletions.
+
+For instance:
+
+\"Man landed on the moon in =1969=\" will be converted into \"Man
+landed on the moon in {{c1:1969}}\"."
+  :type 'boolean
+  :group 'anki-helper)
+
+(cl-defstruct anki-helper--note maybe-id fields tags deck model orig-pos hash)
 
 (defvar anki-helper--cloze-counter 0)
 (defvar anki-helper--org2html-image-counter 0)
-(defconst anki-helper-prop-note-id "ANKI_NOTE_ID")
-(defconst anki-helper-prop-deck "ANKI_DECK")
-(defconst anki-helper-match "ANKI_MATCH")
-(defconst anki-helper-note-type "ANKI_NOTE_TYPE")
-(defconst anki-helper-prop-global-tags "ANKI_TAGS")
+(defvar anki-helper--process-alist nil)
 
 (defvar anki-helper-action-alist
   '((addNote . anki-helper--action-addnote)
     (addNotes . anki-helper--action-addnotes)
-    (deleteNotes . anki-helper--action-deletenotes)))
+    (deleteNotes . anki-helper--action-deletenotes)
+    (updateNote . anki-helper--action-updatenote)
+    (multi . anki-helper--action-multi)))
 
 (defun anki-helper--get-note-fields (note)
   (cdr (assoc note anki-helper-note-types)))
@@ -87,6 +152,7 @@
       ("version" . 6))))
 
 (defun anki-helper--note-to-json (note)
+  "Create an NOTE json structure."
   `(("deckName" . ,(anki-helper--note-deck note))
     ("modelName" . ,(anki-helper--note-model note))
     ("fields"    . ,(anki-helper--note-fields note))
@@ -96,28 +162,44 @@
       ("duplicateScope" . "deck")))))
 
 (defun anki-helper--action-addnote (note)
-  "Create an `addNote' json structure to be added to DECK with
-card FRONT and BACK strings."
+  "Create an `addNote' json structure for NOTE."
   (anki-helper--body
    "addNote"
    `(("note" .
       ,(anki-helper--note-to-json note)))))
 
 (defun anki-helper--action-addnotes (notes)
-  "Create an `addNote' json structure to be added to DECK with
-card FRONT and BACK strings."
+  "Create an `addNotes' json structure for NOTES."
   (anki-helper--body
    "addNotes"
    `(("notes" .
-      (,@notes)))))
+      (,@(mapcar #'anki-helper--note-to-json notes))))))
+
+(defun anki-helper--action-updatenote (note)
+  "Create an `updateNote' json structure for NOTES."
+  (anki-helper--body
+   "updateNote"
+   `(("note" .
+      (("id" . ,(anki-helper--note-maybe-id note))
+       ("fields" . ,(anki-helper--note-fields note))
+       ("tags" . ,(or (anki-helper--note-tags note) "")))))))
+
+(defun anki-helper--action-multi (actions)
+  "Create an `nulti' json structure for ACTIONS."
+  (anki-helper--body
+   "multi"
+   `(("actions" .
+      (,@actions)))))
 
 (defun anki-helper--action-deletenotes (ids)
+  "Create an `deleteNotes' json structure for IDS."
   (anki-helper--body
    "deleteNotes"
    `(("notes" .
       (,@ids)))))
 
 (defun anki-helper--get-global-keyword (keyword)
+  "Get global property by KEYWORD."
   (cadar (org-collect-keywords (list keyword))))
 
 (defun anki-helper--find-prop (name default)
@@ -144,7 +226,8 @@ card FRONT and BACK strings."
        (if anki-helper-inherit-tags
            (substring-no-properties (or (org-entry-get nil "ALLTAGS") ""))
          (org-entry-get nil "TAGS"))
-       global-tags)) ":" t)))
+       global-tags))
+    ":" t)))
 
 (defun anki-helper--get-match ()
   (let ((file-global (anki-helper--get-global-keyword anki-helper-match)))
@@ -152,11 +235,18 @@ card FRONT and BACK strings."
         file-global
       anki-helper-default-match)))
 
-(defun anki-helper--org-html-verbatim (verbatim _contents _info)
-  (cl-incf anki-helper--cloze-counter)
-  (format "{{c%d::%s}}"
-          anki-helper--cloze-counter
-          (org-html-encode-plain-text (org-element-property :value verbatim))))
+(defun anki-helper--make-cloze (string)
+  (let ((data (org-element-parse-secondary-string string '(verbatim)))
+        (anki-helper--cloze-counter 0))
+    (mapconcat (lambda (elt)
+                 (if (stringp elt)
+                     elt
+                   (concat (format "{{c%d::%s}}"
+                                   (cl-incf anki-helper--cloze-counter)
+                                   (org-element-property :value elt))
+                           (make-string (org-element-property :post-blank elt)
+                                        32))))
+               data)))
 
 (defun anki-helper--org2html-link (text backend info)
   (when (eq backend 'html)
@@ -186,32 +276,62 @@ card FRONT and BACK strings."
   text)
 
 (defun anki-helper--org2html (string)
-  (cl-letf (((symbol-function #'org-html-final-function) #'(lambda (contents &rest _args)
-                                                             contents))
-            ((symbol-function #'org-babel-exp-process-buffer) #'ignore))
-    (let ((org-export-filter-link-functions '(anki-helper--org2html-link))
-          (anki-helper--org2html-image-counter 0))
-      (org-export-string-as string 'html t '(:with-toc nil)))))
+  (let ((org-export-filter-link-functions '(anki-helper--org2html-link))
+        (anki-helper--org2html-image-counter 0)
+        (anki-helper--cloze-counter 0))
+    (org-export-string-as string 'html t '(:with-toc nil))))
 
-(defun anki-helper-make-cloze (string)
-  (cl-letf (((symbol-function #'org-html-verbatim) #'anki-helper--org-html-verbatim)
-            (anki-helper--cloze-counter 0))
-    (anki-helper--org2html string)))
+(defun anki-helper--get-note-hash ()
+  (let* ((note-type (anki-helper--find-prop
+                     anki-helper-note-type
+                     anki-helper-default-note-type))
+         (fields (anki-helper--entry-get-fields note-type)))
+    (md5 (anki-helper--filelds2string fields ""))))
 
-(defvar anki-helper--process-alist nil)
-(defvar anki-helper--result nil)
-(defvar anki-helper--pos nil)
+(defun anki-helper-entry-set-hash ()
+  (org-set-property anki-helper-prop-note-hash
+                    (anki-helper--get-note-hash)))
 
-(defun anki-helper--set-note-id ()
-  (dolist (pair (seq-mapn #'cons anki-helper--pos anki-helper--result))
-    (let ((marker (car pair))
-          (id (cdr pair)))
-      (save-excursion
-        (with-current-buffer (marker-buffer marker)
-          (goto-char marker)
-          (org-set-property anki-helper-prop-note-id (number-to-string id)))))))
+(defun anki-helper--entry-update-callback (info _result)
+  (dolist (marker info)
+    (save-excursion
+      (with-current-buffer (marker-buffer marker)
+        (goto-char marker)
+        (anki-helper-entry-set-hash)))))
+
+(defun anki-helper-entry-update-callback (info result)
+  (run-with-idle-timer 1 nil #'anki-helper--entry-update-callback info result))
+
+(defun anki-helper--entry-sync-callback (info result)
+  (dolist (pair (seq-mapn #'cons info result))
+    (if-let ((marker (car pair))
+             (id (cdr pair)))
+        (save-excursion
+          (with-current-buffer (marker-buffer marker)
+            (goto-char marker)
+            (anki-helper-entry-set-hash)
+            (org-set-property anki-helper-prop-note-id
+                              (number-to-string id))))
+      (message "Couldn't add note."))))
+
+(defun anki-helper-entry-sync-callback (info result)
+  (run-with-idle-timer 1 nil #'anki-helper--entry-sync-callback info result))
+
+(defun anki-helper--entry-delete-callback (info _result)
+  (dolist (marker info)
+    (save-excursion
+      (with-current-buffer (marker-buffer marker)
+        (goto-char marker)
+        (org-entry-delete nil anki-helper-prop-note-hash)
+        (org-entry-delete nil anki-helper-prop-note-id)))))
+
+(defun anki-helper-entry-delete-callback (info result)
+  (run-with-idle-timer 1 nil #'anki-helper--entry-delete-callback info result))
 
 (defun anki-helper--curl-sentinel (process _status)
+  "Process sentinel for AnkiConnect curl requests.
+
+PROCESS and _STATUS are process parameters."
   (let ((proc-buf (process-buffer process)))
     (when (eq (process-status process) 'exit)
       (with-current-buffer proc-buf
@@ -223,25 +343,42 @@ card FRONT and BACK strings."
           (setq result (json-read))
           (if-let ((err (plist-get result :error)))
               (message err)
-            (setq anki-helper--result (plist-get result :result))
-            (when (member (car (alist-get process anki-helper--process-alist))
-                          '(addNote addNotes))
-              (run-with-idle-timer 1 nil #'anki-helper--set-note-id))
-            ))))
+            (let* ((result (plist-get result :result))
+                   (info (alist-get process anki-helper--process-alist))
+                   (command (plist-get info :command))
+                   (orig-info (plist-get info :orig-info)))
+              (funcall (alist-get command anki-helper-callback-alist #'ignore)
+                       orig-info result))))))
     (setf (alist-get process anki-helper--process-alist nil 'remove) nil)
     (kill-buffer proc-buf)))
 
 (defun anki-helper--request-args (action body)
+  "Produce list of arguments for calling Curl.
+
+See `anki-helper-request' for details of ACTION and BODY."
   (let* ((func (alist-get action anki-helper-action-alist))
          (file-name (make-temp-name "/tmp/anki")))
     (with-temp-file file-name
       (insert (json-encode (funcall func body))))
     (list
-     "http://127.0.0.1:8765"
+     anki-helper-ankiconnnect-listen-address
      (format "-X%s" "POST")
      (format "-d@%s" file-name))))
 
-(defun anki-helper-request (action body)
+(defun anki-helper-request (action body &optional info)
+  "Perform HTTP POST request to AnkiConnect.
+
+ACTION should be a symbol supported by AnkiConnect.
+
+BODY is the data used by functions in `anki-helper-action-alist'.
+
+INFO should be a plist in the following format:
+(:command FUNCTION :orig-info ORIG-INFO).
+
+FUNCTION is the function that calls `anki-helper-request'.
+
+ORIG-INFO is a list of makers which records the position of each
+entry."
   (let* ((args (anki-helper--request-args action body))
          (process (apply #'start-process
                          "anki-helper"
@@ -251,106 +388,217 @@ card FRONT and BACK strings."
     (with-current-buffer (process-buffer process)
       (set-process-query-on-exit-flag process nil)
       (setf (alist-get process anki-helper--process-alist)
-            (cons action body))
+            info)
       (set-process-sentinel process #'anki-helper--curl-sentinel))))
 
-;; (defun anki-helper--entry-get-fields ()
-;;   (let* ((note-type (anki-helper--find-prop
-;;                      anki-helper-note-type
-;;                      anki-helper-default-note-type))
-;;          (front (org-get-heading t t t t))
-;;          (back (org-get-entry))
-;;          (hash (md5 (format "%s%s%s" (random) front back)))
-;;          (html (anki-helper--org2html (concat
-;;                                        front
-;;                                        (format "\n\n%s\n\n" hash)
-;;                                        back)))
-;;          (result (string-split html (format "<p>\n%s\n</p>" hash)
-;;                                t "\n+")))
-;;     (list (cons (car (anki-helper--get-note-fields
-;;                       anki-helper-default-note-type))
-;;                 (car result))
-;;           (cons (cadr (anki-helper--get-note-fields
-;;                        anki-helper-default-note-type))
-;;                 (cadr result)))))
 
-;; (defun anki-helper-sync-entry ()
-;;   (interactive)
-;;   (let* ((maybe-id (org-entry-get nil anki-helper-prop-note-id))
-;;          (deck (anki-helper--find-prop
-;;                 anki-helper-prop-deck
-;;                 anki-helper-default-deck))
-;;          (tags (anki-helper--get-tags))
-;;          (model (anki-helper--find-prop
-;;                  anki-helper-note-type
-;;                  anki-helper-default-note-type))
-;;          (fields (anki-helper--entry-get-fields))
-;;          (orig-pos (point-marker)))
-;;     (anki-helper-request 'addNote
-;;                          (make-anki-helper--note
-;;                           :maybe-id maybe-id
-;;                           :fields fields
-;;                           :tags tags
-;;                           :deck deck
-;;                           :model model
-;;                           :orig-pos orig-pos))))
+;;;; fields
+
+(defun anki-helper-fields-get-default ()
+  "Default function for get filed info of the current entry."
+  (let* ((elt (plist-get (org-element-at-point) 'headline))
+         (front (plist-get elt :raw-value))
+         (contents-begin (plist-get elt :contents-begin))
+         (robust-begin (or (plist-get elt :robust-begin)
+                           contents-begin))
+         (beg (if (or (= contents-begin robust-begin)
+                      (= (+ 2 contents-begin) robust-begin))
+                  contents-begin
+                (1+ robust-begin)))
+         (contents-end (plist-get elt :contents-end))
+         (back (buffer-substring-no-properties
+                beg (1- contents-end))))
+    (list front back)))
+
+(defun anki-helper-fields-get-cloze ()
+  "Default function for get filed info of the current entry for
+\"Cloze\" note-type."
+  (let* ((pair (anki-helper-fields-get-default))
+         (back (cadr pair)))
+    (list (if anki-helper-cloze-use-verbatim
+              (anki-helper--make-cloze back)
+            back)
+          "")))
+
+(defun anki-helper--entry-get-fields (note-type)
+  "Get the fileds info of the current entry for NOTE-TYPE."
+  (let ((fields (anki-helper--get-note-fields note-type))
+        (field-contents (funcall (alist-get
+                                  note-type
+                                  anki-helper-fields-get-alist
+                                  #'anki-helper-fields-get-default
+                                  nil #'string=))))
+    (seq-mapn #'cons fields field-contents)))
+
+(defun anki-helper--filelds2string (fields seprator)
+  "Convert the contents in fields into a single string."
+  (mapconcat #'cdr fields seprator))
 
 (defun anki-helper--entry-get-content ()
+  "Create a `anki-helper--note' struct for current Anki entry."
   (let* ((note-type (anki-helper--find-prop
                      anki-helper-note-type
                      anki-helper-default-note-type))
-         (front (org-no-properties (org-get-heading t t t t)))
-         (back (org-no-properties (org-get-entry)))
-         (hash (md5 (format "%s%s%s" (random) front back))))
-    (list :content (format "%s\n\n%s\n\n%s\n\n" front hash back)
-          :hash hash :pos (point-marker) :note-type note-type)))
+         (fields (anki-helper--entry-get-fields note-type))
+         (maybe-id (org-entry-get nil org-anki-prop-note-id))
+         (deck (anki-helper--find-prop
+                anki-helper-prop-deck
+                anki-helper-default-deck))
+         (tags (anki-helper--get-tags))
+         (hash (md5 (format "%s%s"
+                            (random)
+                            (anki-helper--filelds2string fields "")))))
+    (make-anki-helper--note
+     :maybe-id (if (stringp maybe-id) (string-to-number maybe-id))
+     :deck deck
+     :fields fields
+     :tags tags
+     :model note-type
+     :orig-pos (point-marker)
+     :hash hash)))
 
-(defun anki-helper--get-fields (plist)
-  (let ((note-type (plist-get plist :note-type))
-        (pair (plist-get plist :pair)))
-    (list (cons (car (anki-helper--get-note-fields
-                      note-type))
-                (car pair))
-          (cons (cadr (anki-helper--get-note-fields
-                       note-type))
-                (cadr pair)))))
+(defun anki-helper--create-fields (note-type contents)
+  "Create field pairs for NOTE-TYPE and CONTENTS.
 
-(defun anki-helper--make-note (elt)
-  (let ((fields (anki-helper--get-fields (list
-                                          :note-type (plist-get (car elt) :note-type)
-                                          :pair (string-split (cdr elt) (format "<p>\n%s\n</p>" (plist-get (car elt) :hash)) t "\n+"))))
-        (deck anki-helper-default-deck)
-        (model (plist-get (car elt) :note-type))
-        (orig-pos (plist-get (car elt) :pos)))
-    (anki-helper--note-to-json (make-anki-helper--note
-                                :maybe-id nil
-                                :fields fields
-                                :tags nil
-                                :deck deck
-                                :model model
-                                :orig-pos orig-pos))))
+NOTE-TYPE is a string, specifying the Anki note type. See
+`anki-helper-note-types' for details.
 
-(defun anki-helper--entry-get-all ()
-  (let* ((contents (org-map-entries
-                    #'anki-helper--entry-get-content
-                    (concat (format "-%s={.+}" org-anki-prop-note-id)
-                            (anki-helper--get-match))))
+CONTENTS is a list of string, where each string corresponds to a
+field in NOTE-TYPE.
+
+Example:
+
+(anki-helper--create-fields \"Basic\" '(\"front side\" \"back
+side\")) ==> ((\"Front\" . \"front side\") (\"Back\" . \"back
+side\"))"
+  (let* ((fields (anki-helper--get-note-fields note-type)))
+    (seq-mapn #'cons fields contents)))
+
+(defun anki-helper--note-update-fields (note new-fields)
+  "Replace slot `fields' of NOTE with NEW-FIELDS.
+
+NOTE is an `anki-helper--note' struct.
+
+NEW-FIELDS is a string."
+  (setf (cl-struct-slot-value 'anki-helper--note 'fields note)
+        (anki-helper--create-fields
+         (anki-helper--note-model note)
+         (string-split
+          new-fields
+          (format "<p>\n%s\n</p>" (anki-helper--note-hash note))
+          t
+          "\n+")))
+  note)
+
+(defun anki-helper--entry-get-all (match &optional skip)
+  "Gel all Anki entries in the current buffer.
+
+Return a cons of notes and positions.
+
+See `org-map-entries' for details about MATCH and SKIP."
+  (let* ((notes (org-map-entries
+                 #'anki-helper--entry-get-content
+                 match
+                 nil
+                 (or skip anki-helper-skip-function)))
          (hash (md5 (format "%s%s" (random) (recent-keys))))
-         (html (anki-helper--org2html (mapconcat
-                                       (lambda (elt)
-                                         (plist-get elt :content))
-                                       contents (format "\n\n%s\n\n" hash))))
-         (pair (seq-mapn #'cons
-                         (mapcar #'cddr contents)
-                         (string-split html (format "<p>\n%s\n</p>" hash)
-                                       t "\n+"))))
-    (setq anki-helper--pos (mapcar (lambda (plist)
-                                     (plist-get plist :pos))
-                                   contents))
-    (mapcar #'anki-helper--make-note pair)))
+         (html (anki-helper--org2html
+                (mapconcat
+                 (lambda (note)
+                   (let ((fields (anki-helper--note-fields note))
+                         (hash (anki-helper--note-hash note)))
+                     (format "\n\n%s\n\n"
+                             (anki-helper--filelds2string
+                              fields
+                              (format "\n\n%s\n\n" hash)))))
+                 notes (format "\n\n%s\n\n" hash))))
+         (new-notes (seq-mapn #'anki-helper--note-update-fields
+                              notes
+                              (string-split html
+                                            (format "<p>\n%s\n</p>" hash)
+                                            t "\n+")))
+         (positions (mapcar (lambda (note)
+                              (anki-helper--note-orig-pos note))
+                            notes)))
+    (cons new-notes positions)))
+
+(defun anki-helper-entry-modified-p ()
+  "Return t if the entry is modified, else nil."
+  (let ((orig-hash (org-entry-get nil anki-helper-prop-note-hash))
+        (new-hash (anki-helper--get-note-hash)))
+    (if (and (if anki-helper-skip-function
+                 (funcall anki-helper-skip-function)
+               t)
+             (string= orig-hash new-hash))
+        (point))))
+
+(cl-defun anki-helper-create-note (contents &key id tags
+                                            (deck anki-helper-default-deck)
+                                            (model anki-helper-default-note-type))
+  "Construct an object of type `anki-helper--note'.
+
+CONTENTS should be a list of string, where each string
+corresponds to a field in MODEL.
+
+ID is a number, corresponding to the note id.
+
+TAGS is a list of string.
+
+Deck is a string, specifying where the note will be stored. Use
+`anki-helper-default-deck' by default.
+
+MODEL is a string, specifying the note type. Use
+`anki-helper-default-note-type' by defualt."
+  (let* ((fields (anki-helper--create-fields model contents))
+         (hash (md5 (format "%s%s"
+                            (random)
+                            (anki-helper--filelds2string fields "")))))
+    (make-anki-helper--note
+     :maybe-id id
+     :fields fields
+     :tags tags
+     :deck deck
+     :model model
+     :hash hash)))
+
+(defun anki-helper-create-notes (notes)
+  (let* ((hash (md5 (format "%s%s" (random) (recent-keys))))
+         (html (anki-helper--org2html
+                (mapconcat
+                 (lambda (note)
+                   (let ((fields (anki-helper--note-fields note))
+                         (hash (anki-helper--note-hash note)))
+                     (format "\n\n%s\n\n"
+                             (anki-helper--filelds2string
+                              fields
+                              (format "\n\n%s\n\n" hash)))))
+                 notes (format "\n\n%s\n\n" hash)))))
+
+    (seq-mapn #'anki-helper--note-update-fields
+              notes
+              (string-split html (format "<p>\n%s\n</p>" hash) t "\n+"))))
+
+;;;###autoload
+(defun anki-helper-entry-sync-all ()
+  "Sync all matched Anki entries in the current buffer.
+
+See `org-map-entries', `anki-helper-skip-function' and
+`anki-helper--get-match' for details."
+  (interactive)
+  (when-let* ((result (anki-helper--entry-get-all
+                       (concat (format "-%s={.+}" org-anki-prop-note-id)
+                               (anki-helper--get-match))))
+              (body (car result)))
+    (anki-helper-request 'addNotes
+                         body
+                         (list :command 'anki-helper-entry-sync-all
+                               :orig-info (cdr result)))))
 
 ;;;###autoload
 (defun anki-helper-entry-sync ()
+  "Sync the Anki entry under the cursor.
+
+See `anki-helper-entry-sync-all' for details."
   (interactive)
   (save-excursion
     (save-restriction
@@ -358,52 +606,72 @@ card FRONT and BACK strings."
       (anki-helper-entry-sync-all))))
 
 ;;;###autoload
-(defun anki-helper-entry-sync-all ()
+(defun anki-helper-entry-update-all ()
+  "Update all modified Anki entries in the current buffer.
+
+See `org-map-entries', `anki-helper-entry-modified-p' and
+`anki-helper--get-match' for details."
   (interactive)
-  (anki-helper-request 'addNotes (anki-helper--entry-get-all)))
+  (when-let* ((result (anki-helper--entry-get-all
+                       (concat (format "%s={.+}" org-anki-prop-note-id)
+                               (anki-helper--get-match))
+                       #'anki-helper-entry-modified-p))
+              (body (mapcar #'anki-helper--action-updatenote (car result))))
+    (anki-helper-request 'multi
+                         body
+                         (list :command 'anki-helper-entry-update-all
+                               :orig-info (cdr result)))))
 
 ;;;###autoload
-(defun anki-helper-entry-delete ()
+(defun anki-helper-entry-update ()
+  "Update the Anki entry under the cursor.
+
+See `anki-helper-entry-update-all' for details."
   (interactive)
-  (when-let ((id (string-to-number
-                  (org-entry-get nil org-anki-prop-note-id))))
-    (anki-helper-request 'deleteNotes (list id))
-    (org-entry-delete nil org-anki-prop-note-id)))
+  (save-excursion
+    (save-restriction
+      (org-narrow-to-subtree)
+      (anki-helper-entry-update-all))))
 
 ;;;###autoload
 (defun anki-helper-entry-delete-all ()
-  (interactive)
-  (when-let ((ids (org-map-entries
-                   (lambda ()
-                     (let ((id (string-to-number
-                                (org-entry-get nil org-anki-prop-note-id))))
-                       (org-entry-delete nil org-anki-prop-note-id)
-                       id))
-                   (concat
-                    (format "%s={.+}" org-anki-prop-note-id)
-                    (anki-helper--get-match)))))
-    (anki-helper-request 'deleteNotes ids)))
+  "Delete all matched Anki entries in the current buffer.
 
-(defun anki-helper-create-card (front back &optional id tags deck model)
-  (let ((fields (list (cons (car (anki-helper--get-note-fields
-                                  anki-helper-default-note-type))
-                            front)
-                      (cons (cadr (anki-helper--get-note-fields
-                                   anki-helper-default-note-type))
-                            back)))
-        (deck (or deck anki-helper-default-deck))
-        (model (or model anki-helper-default-note-type))
-        (orig-pos (point-marker)))
-    (make-anki-helper--note
-     :maybe-id id
-     :fields fields
-     :tags tags
-     :deck deck
-     :model model
-     :orig-pos orig-pos)))
+See `org-map-entries' and `anki-helper--get-match' for details."
+  (interactive)
+  (when-let ((pairs (org-map-entries
+                     (lambda ()
+                       (when-let ((id (org-entry-get nil org-anki-prop-note-id))
+                                  (marker (point-marker)))
+                         (cons (string-to-number id) marker)))
+                     (concat
+                      (format "%s={.+}" org-anki-prop-note-id)
+                      (anki-helper--get-match)))))
+    (anki-helper-request 'deleteNotes
+                         (mapcar #'car pairs)
+                         (list :command 'anki-helper-entry-delete-all
+                               :orig-info (mapcar #'cdr pairs)))))
+
+;;;###autoload
+(defun anki-helper-entry-delete ()
+  "Delete the Anki entry under the cursor.
+
+See `anki-helper-entry-delete-all' for details."
+  (interactive)
+  (when-let ((id (string-to-number
+                  (org-entry-get nil org-anki-prop-note-id))))
+    (anki-helper-request 'deleteNotes
+                         (list id)
+                         (list :command 'anki-helper-entry-delete
+                               :orig-info (list (point-marker))))))
 
 ;;;###autoload
 (defun anki-helper-set-front-region ()
+  "Mark a region.
+
+Use the text in the region as the fornt of the card. Call
+`anki-helper-make-two-sided-card' to specify the back of the card
+and create a two-sided flashcard."
   (interactive)
   (letrec ((ah-delete-sec-region (lambda ()
                                    (delete-overlay mouse-secondary-overlay)
@@ -415,17 +683,27 @@ card FRONT and BACK strings."
       (deactivate-mark t))))
 
 ;;;###autoload
-(defun anki-helper-on-demand ()
-  (interactive)
+(defun anki-helper-make-two-sided-card (beg end)
+  "Create a two-sided flashcard.
+
+Use the text between START and END as the back of the card. Call
+`anki-helper-set-front-region' to specify the front of the card.
+
+By default, the card's model will be
+`anki-helper-default-note-type' and it will be stored in
+`anki-helper-default-deck'. See `anki-helper-create-note' for
+more informations."
+  (interactive "r")
   (unless (region-active-p)
     (user-error "Please select a region!"))
+  (unless (overlay-start mouse-secondary-overlay)
+    (user-error "Please call `anki-helper-set-front-region' first!"))
   (let* ((front (buffer-substring-no-properties
                  (overlay-start mouse-secondary-overlay)
                  (overlay-end mouse-secondary-overlay)))
-         (back (buffer-substring-no-properties
-                (region-beginning)
-                (region-end))))
-    (anki-helper-request 'addNote (anki-helper-create-card front back))))
+         (back (buffer-substring-no-properties beg end)))
+    (anki-helper-request 'addNote (anki-helper-create-note (list front back)))
+    (deactivate-mark)))
 
 
 (provide 'anki-helper)
