@@ -1,0 +1,8 @@
+* GNU Emacs (heading will not be added)
+:PROPERTIES:
+:ANKI_NOTE_TYPE: Cloze
+:END:
+An extensible, customizable, free/libre =text editor= — and more.
+
+At its core is an interpreter for =Emacs Lisp=, a dialect of the Lisp programming
+language with extensions to support text editing.
