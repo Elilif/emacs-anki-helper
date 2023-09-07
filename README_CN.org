@@ -154,5 +154,52 @@ anki-helper 提供了几个 API ：
 变量 ~anki-helper-fields-get-alist~ 设置了两个基本的字段获取函数：~anki-helper-fields-get-default~ 用于 Anki 默认的 Basic 模板，使用标题行为卡片正面，内容为卡片反面、~anki-helper-fields-get-cloze~ 用于 Anki 默认的 Cloze 模板，使用标题下的内容来填充 ~Text~ 字段，~Back Extra~ 字段留空。您可以定义自己的字段获取函数，详见 ~anki-helper-fields-get-alist~ 的文档。
 ** 修改回调函数
 详见 ~anki-helper-callback-alist~
+* 更多自定义
+** 在卡片中添加指向原文所在条目的链接
+1. 在 Anki 中安装插件 [[https://ankiweb.net/shared/info/879473266][Open link in external Program]] 并创建自己的 note type
+   
+   本例中 note type 的名字是 "Basic (with backlink)" ，其四个字段分别为： Front, Back, Source 和 Location
+2. 执行下述代码
+   #+begin_src elisp
+     (server-start)
 
+     (defun anki-helper--entry-locate (filename entry-name)
+       (find-file filename)
+       (let* ((data (org-element-parse-buffer))
+              (pos (org-element-map data '(headline)
+                     (lambda (elt)
+                       (when (string= (org-element-property :raw-value elt)
+                                      entry-name)
+                         (org-element-property :begin elt)))
+                     nil t)))
+         (goto-char pos)
+         (org-reveal)))
 
+     (defun anki-helper-fields-get-with-backlink ()
+       "Get filed info of the current entry with backlink."
+       (let* ((elt (plist-get (org-element-at-point) 'headline))
+              (front (plist-get elt :raw-value))
+              (contents-begin (plist-get elt :contents-begin))
+              (robust-begin (or (plist-get elt :robust-begin)
+                                contents-begin))
+              (beg (if (or (= contents-begin robust-begin)
+                           (= (+ 2 contents-begin) robust-begin))
+                       contents-begin
+                     (1+ robust-begin)))
+              (contents-end (plist-get elt :contents-end))
+              (back (buffer-substring-no-properties
+                     beg (1- contents-end)))
+              (filename (file-name-nondirectory (buffer-file-name))))
+         (list front back filename front)))
+
+     (setq anki-helper-note-types '(("Basic (with backlink)" "Front" "Back" "Source" "Location"))
+           anki-helper-fields-get-alist '(("Basic (with backlink)" . anki-helper-fields-get-with-backlink))
+           anki-helper-default-note-type "Basic (with backlink)")
+#+end_src
+3. 设置打开 org 文件的外部程序
+   需要在下面两栏中进行如下设置：
+   - comand/program :: ~/usr/local/bin/emacsclient~
+   - command open on page arguments :: ~-e '(anki-helper--entry-locate PATH "PAGE")'~
+
+效果如下：
+[[examples/notes-with-backlink.gif]]
