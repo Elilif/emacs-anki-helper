@@ -572,7 +572,7 @@ Deck is a string, specifying where the note will be stored. Use
 `anki-helper-default-deck' by default.
 
 MODEL is a string, specifying the note type. Use
-`anki-helper-default-note-type' by defualt."
+`anki-helper-default-note-type' by default."
   (let* ((fields (anki-helper--create-fields model contents))
          (hash (md5 (format "%s%s"
                             (random)
