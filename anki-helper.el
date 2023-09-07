@@ -366,7 +366,7 @@ PROCESS and _STATUS are process parameters."
                result)
           (setq result (json-read))
           (if-let ((err (plist-get result :error)))
-              (message err)
+              (message (format "Error: %s" err))
             (let* ((result (plist-get result :result))
                    (info (alist-get process anki-helper--process-alist))
                    (command (plist-get info :command))
