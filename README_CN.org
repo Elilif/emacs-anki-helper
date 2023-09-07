@@ -2,25 +2,19 @@
 * 为什么用 Anki-helper
 目前辅助 Anki 制卡的插件主要是 [[https://github.com/eyeinsky/org-anki][eyeinsky/org-anki]] 和 [[https://github.com/louietan/anki-editor][louietan/anki-editor]] 。
 
-anki-editor 我只是很浅的用了一下，马上就被它的格式要求给劝退了： anki-editor 需
-要使用专门的标题行来标记卡片的正反面。这首先导致原有的笔记不能快速转化为卡片，需
-要自己转换；其次制作好的卡片几乎只能由 anki-editor 使用，无法融入到现有的工作流
+anki-editor 我只是很浅的用了一下，马上就被它的格式要求给劝退了： anki-editor 需要使用专门的标题行来标记卡片的正反面。这首先导致原有的笔记不能快速转化为卡片，需要自己转换；其次制作好的卡片几乎只能由 anki-editor 使用，无法融入到现有的工作流
 中，需要专门的文件来存放。
 
-org-anki 比较好地解决了上述缺点，它使用当前的标题栏作为正面，笔记内容作为反面。
-这正好和我记笔记的方式吻合，原有的笔记马上就能拿来制卡，也不需要专门的文件。所以
-org-anki 我用了很长一段时间，通过pdf-tools + org-note + org-anki 实践渐进式阅读，
+org-anki 比较好地解决了上述缺点，它使用当前的标题栏作为正面，笔记内容作为反面。这正好和我记笔记的方式吻合，原有的笔记马上就能拿来制卡，也不需要专门的文件。所以 org-anki 我用了很长一段时间，通过pdf-tools + org-note + org-anki 实践渐进式阅读，
 已经读了很多大部头的书。
 
 org-anki 的缺点如下：
 
 1. 同步速度慢
 
-  org-anki 同步笔记实在是太慢了。我经常需要修改卡片，对于卡片比较多的文件，同步
-  简直是个噩梦。
+  org-anki 同步笔记实在是太慢了。我经常需要修改卡片，对于卡片比较多的文件，同步简直是个噩梦。
 
-  以 [[examples/headings.org]] 为例， org-anki 和 anki-helper 同步和删除所有卡片
-  （ 422张）的时间对比如下：
+  以 [[examples/headings.org]] 为例， org-anki 和 anki-helper 同步和删除所有卡片（ 422张）的时间对比如下：
 
   |             | (benchmark 1 '(xxx-sync-all))     | (benchmark 1 '(xxx-delete-all))   |
   |-------------+-----------------------------------+-----------------------------------|
@@ -29,16 +23,10 @@ org-anki 的缺点如下：
    
 2. 仅支持 heading ，模板字段填充方式僵硬
 
-   org-anki 的另外一个问题是它只适用于 heading ，没有提供 API 来添加自定义的卡片
-   制做函数。一个 heading 一张卡片的好处一是可以保存卡片的信息，如卡片 ID，是否
-   已经修改等，这样方便后续修改；二是可以对不同的 heading 进行不同操作。但是有些
-   类型的卡片是不需要这类额外的信息的，一个常见的例子就是单词卡片。我需要只是收
-   集生词，然后同步到 Anki ，后续几乎不会修改。显然一个单词一个 heading 是比较浪
-   费的。
+   org-anki 的另外一个问题是它只适用于 heading ，没有提供 API 来添加自定义的卡片制做函数。一个 heading 一张卡片的好处一是可以保存卡片的信息，如卡片 ID，是否已经修改等，这样方便后续修改；二是可以对不同的 heading 进行不同操作。但是有些
+   类型的卡片是不需要这类额外的信息的，一个常见的例子就是单词卡片。我需要只是收集生词，然后同步到 Anki ，后续几乎不会修改。显然一个单词一个 heading 是比较浪费的。
 
-   org-anki 仅支持两种字段填充方式：一是标题行为卡片正面，内容为反面；二是使用子
-   标题来区分字段。后一种做法又回到了 anki-editor。这里的问题是每个人的习惯是不
-   一样的，自定义的模板也千奇百怪，所以必须要提供一套足够灵活的 API 来方便用户创
+   org-anki 仅支持两种字段填充方式：一是标题行为卡片正面，内容为反面；二是使用子标题来区分字段。后一种做法又回到了 anki-editor。这里的问题是每个人的习惯是不一样的，自定义的模板也千奇百怪，所以必须要提供一套足够灵活的 API 来方便用户创
    建自己的字段填充函数。
 
 3. 缺乏多媒体内容处理
@@ -50,11 +38,8 @@ org-anki 的缺点如下：
 
 1. 尽可能地保持原始文本内容不变
    
-   对于 Cloze 类型的卡片来说，常规的做法是使用 ~{{c1:xxx}}~ 这种形式，但是这会破坏
-   原有内容，不利于其他操作。这其实是一种变相的专有化。我在设计 anki-helper 的时
-   候注意到 org 文件在导出到 html 的时候，默认情况下 code 和 verbatim 都会变成
-   ~<code>~ 标签。所以考虑是不是能够将其中的一个拿来充当 Cloze 的标记。经过一番尝
-   试过后我发现效果不错。如果你有下述文本：
+   对于 Cloze 类型的卡片来说，常规的做法是使用 ~{{c1:xxx}}~ 这种形式，但是这会破坏原有内容，不利于其他操作。这其实是一种变相的专有化。我在设计 anki-helper 的时候想到 org 文件在导出到 html 的时候，默认情况下 code 和 verbatim 都会变成
+   ~<code>~ 标签。所以考虑是不是能够将其中的一个拿来充当 Cloze 的标记。经过一番尝试过后我发现效果不错。如果你有下述文本：
    #+begin_example
      =Canberra= was founded in =1913=.
    #+end_example
@@ -63,8 +48,7 @@ org-anki 的缺点如下：
      {{c1::Canberra}} was founded in {{c2::1913}}.
    #+end_example
 
-   *注意*: 此功能由变量 ~anki-helper-cloze-use-verbatim~ 控制，默认情况下关闭。同时
-   不支持下述类型的转化：
+   *注意*: 此功能由变量 ~anki-helper-cloze-use-verbatim~ 控制，默认情况下关闭。同时不支持下述类型的转化：
    #+begin_example
      {{c1::Canberra}} was founded in {{c1::1913}}.
    #+end_example
@@ -137,8 +121,7 @@ org-anki 的缺点如下：
 每个 heading 可以有各自的属性。上述变量的优先级为 ~Properties > file-local
 variables > global variables~ 。
 ** heading 类型的卡片
-anki-helper 默认提供了一系列函数来对 heanding 类型的卡片进行操作（后续会增加更多
-操作）：
+anki-helper 默认提供了一系列函数来对 heanding 类型的卡片进行操作（后续会增加更多操作）：
 *** 函数
 
 1. ~anki-helper-entry-sync~
@@ -168,15 +151,11 @@ anki-helper 提供了几个 API ：
 
 具体用法详见函数文档。
 
-作为参考，您可以查阅 ~anki-helper-set-front-region~ 和
-~anki-helper-make-two-sided-card~ 两个函数，它们提供了一种交互式制卡的方式。
+作为参考，您可以查阅 ~anki-helper-set-front-region~ 和 ~anki-helper-make-two-sided-card~ 两个函数，它们提供了一种交互式制卡的方案。
 * 修改默认的行为
 ** 修改模板字段填充方式
-变量 ~anki-helper-fields-get-alist~ 设置了两个基本的字段获取函
-数：~anki-helper-fields-get-default~ 用于 Anki 默认的 Basic 模板，使用标题行为卡片
-正面，内容为卡片反面、~anki-helper-fields-get-cloze~ 用于 Anki 默认的 Cloze 模板，
-使用标题下的内容来填充 ~Text~ 字段，~Back Extra~ 字段留空。您可以定义自己的字段获取
-函数，详见 ~anki-helper-fields-get-alist~ 的文档。
+变量 ~anki-helper-fields-get-alist~ 设置了两个基本的字段获取函数：~anki-helper-fields-get-default~ 用于 Anki 默认的 Basic 模板，使用标题行为卡片正面，内容为卡片反面、~anki-helper-fields-get-cloze~ 用于 Anki 默认的 Cloze 模板，
+使用标题下的内容来填充 ~Text~ 字段，~Back Extra~ 字段留空。您可以定义自己的字段获取函数，详见 ~anki-helper-fields-get-alist~ 的文档。
 ** 修改回调函数
 详见 ~anki-helper-callback-alist~
 
