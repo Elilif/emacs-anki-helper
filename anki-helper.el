@@ -128,6 +128,13 @@ how to use it to include or skip an entry from being synced."
   :type 'function
   :group 'anki-helper)
 
+(defcustom anki-helper-default-callback #'anki-helper--default-callback
+  "Function used to deal with the info returned by AnkiConnect.
+
+Accept two arguments: INFO and RESULT."
+  :type 'function
+  :group 'anki-helper)
+
 (defcustom anki-helper-cloze-use-verbatim nil
   "Non-nil means verbatim text will be treated as cloze deletions.
 
@@ -293,6 +300,9 @@ landed on the moon in {{c1:1969}}\"."
         (anki-helper--cloze-counter 0))
     (org-export-string-as string 'html t '(:with-toc nil))))
 
+(defun anki-helper--default-callback (_info _result)
+  (message "Synchronizing...done"))
+
 (defun anki-helper--get-note-hash ()
   (let* ((note-type (anki-helper--find-prop
                      anki-helper-note-type
@@ -309,7 +319,8 @@ landed on the moon in {{c1:1969}}\"."
     (save-excursion
       (with-current-buffer (marker-buffer marker)
         (goto-char marker)
-        (anki-helper-entry-set-hash)))))
+        (anki-helper-entry-set-hash))))
+  (message "Updating cards...done"))
 
 (defun anki-helper-entry-update-callback (info result)
   (run-with-idle-timer 1 nil #'anki-helper--entry-update-callback info result))
@@ -324,7 +335,8 @@ landed on the moon in {{c1:1969}}\"."
             (anki-helper-entry-set-hash)
             (org-set-property anki-helper-prop-note-id
                               (number-to-string id))))
-      (message "Couldn't add note."))))
+      (message "Couldn't add note.")))
+  (message "Synchronizing cards...done."))
 
 (defun anki-helper-entry-sync-callback (info result)
   (run-with-idle-timer 1 nil #'anki-helper--entry-sync-callback info result))
@@ -335,7 +347,8 @@ landed on the moon in {{c1:1969}}\"."
       (with-current-buffer (marker-buffer marker)
         (goto-char marker)
         (org-entry-delete nil anki-helper-prop-note-hash)
-        (org-entry-delete nil anki-helper-prop-note-id)))))
+        (org-entry-delete nil anki-helper-prop-note-id))))
+  (message "Deleting cards...done."))
 
 (defun anki-helper-entry-delete-callback (info result)
   (run-with-idle-timer 1 nil #'anki-helper--entry-delete-callback info result))
@@ -358,7 +371,7 @@ PROCESS and _STATUS are process parameters."
                    (info (alist-get process anki-helper--process-alist))
                    (command (plist-get info :command))
                    (orig-info (plist-get info :orig-info)))
-              (funcall (alist-get command anki-helper-callback-alist #'ignore)
+              (funcall (alist-get command anki-helper-callback-alist anki-helper-default-callback)
                        orig-info result))))))
     (setf (alist-get process anki-helper--process-alist nil 'remove) nil)
     (kill-buffer proc-buf)))
