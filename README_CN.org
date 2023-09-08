@@ -181,8 +181,10 @@ anki-helper 提供了几个 API ：
      (defun anki-helper-fields-get-with-backlink ()
        "Get filed info of the current entry with backlink."
        (let* ((front-and-back (anki-helper-fields-get-default))
-              (filename (file-name-nondirectory (buffer-file-name))))
-         `(,@front-and-back ,filename ,(cadr front-and-back))))
+              (filename (file-name-nondirectory (buffer-file-name)))
+              (elt (plist-get (org-element-at-point) 'headline))
+              (entry (plist-get elt :raw-value)))
+         `(,@front-and-back ,filename ,entry)))
 
      (setq anki-helper-note-types '(("Basic (with backlink)" "Front" "Back" "Source" "Location"))
            anki-helper-fields-get-alist '(("Basic (with backlink)" . anki-helper-fields-get-with-backlink))
