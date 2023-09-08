@@ -519,7 +519,7 @@ NEW-FIELDS is a string."
          (string-split
           new-fields
           (format "<p>\n%s\n</p>" (anki-helper--note-hash note))
-          t
+          nil
           "\n+")))
   note)
 
