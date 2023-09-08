@@ -527,30 +527,30 @@ NEW-FIELDS is a string."
 Return a cons of notes and positions.
 
 See `org-map-entries' for details about MATCH and SKIP."
-  (let* ((notes (org-map-entries
-                 #'anki-helper--entry-get-content
-                 match
-                 nil
-                 (or skip anki-helper-skip-function)))
-         (hash (md5 (format "%s%s" (random) (recent-keys))))
-         (html (anki-helper--org2html
-                (mapconcat
-                 (lambda (note)
-                   (let ((fields (anki-helper--note-fields note))
-                         (hash (anki-helper--note-hash note)))
-                     (format "\n\n%s\n\n"
-                             (anki-helper--filelds2string
-                              fields
-                              (format "\n\n%s\n\n" hash)))))
-                 notes (format "\n\n%s\n\n" hash))))
-         (new-notes (seq-mapn #'anki-helper--note-update-fields
-                              notes
-                              (string-split html
-                                            (format "<p>\n%s\n</p>" hash)
-                                            t "\n+")))
-         (positions (mapcar (lambda (note)
-                              (anki-helper--note-orig-pos note))
-                            notes)))
+  (when-let* ((notes (org-map-entries
+                      #'anki-helper--entry-get-content
+                      match
+                      nil
+                      (or skip anki-helper-skip-function)))
+              (hash (md5 (format "%s%s" (random) (recent-keys))))
+              (html (anki-helper--org2html
+                     (mapconcat
+                      (lambda (note)
+                        (let ((fields (anki-helper--note-fields note))
+                              (hash (anki-helper--note-hash note)))
+                          (format "\n\n%s\n\n"
+                                  (anki-helper--filelds2string
+                                   fields
+                                   (format "\n\n%s\n\n" hash)))))
+                      notes (format "\n\n%s\n\n" hash))))
+              (new-notes (seq-mapn #'anki-helper--note-update-fields
+                                   notes
+                                   (string-split html
+                                                 (format "<p>\n%s\n</p>" hash)
+                                                 t "\n+")))
+              (positions (mapcar (lambda (note)
+                                   (anki-helper--note-orig-pos note))
+                                 notes)))
     (cons new-notes positions)))
 
 (defun anki-helper-entry-modified-p ()
@@ -643,15 +643,16 @@ See `anki-helper-entry-sync-all' for details."
 See `org-map-entries', `anki-helper-entry-modified-p' and
 `anki-helper--get-match' for details."
   (interactive)
-  (when-let* ((result (anki-helper--entry-get-all
-                       (concat (format "%s={.+}" anki-helper-prop-note-id)
-                               (anki-helper--get-match))
-                       #'anki-helper-entry-modified-p))
-              (body (mapcar #'anki-helper--action-updatenote (car result))))
-    (anki-helper-request 'multi
-                         body
-                         (list :command 'anki-helper-entry-update-all
-                               :orig-info (cdr result)))))
+  (if-let* ((result (anki-helper--entry-get-all
+                     (concat (format "%s={.+}" anki-helper-prop-note-id)
+                             (anki-helper--get-match))
+                     #'anki-helper-entry-modified-p))
+            (body (mapcar #'anki-helper--action-updatenote (car result))))
+      (anki-helper-request 'multi
+                           body
+                           (list :command 'anki-helper-entry-update-all
+                                 :orig-info (cdr result)))
+    (message "anki-helper: no update needed.")))
 
 ;;;###autoload
 (defun anki-helper-entry-update ()
