@@ -710,7 +710,7 @@ See `anki-helper-entry-delete-all' for details."
 (defun anki-helper-entry-browse ()
   "Browse entry at point on Anki's browser dialog with searching nid."
   (interactive)
-  (if-let ((maybe-id (org-entry-get nil org-anki-prop-note-id)))
+  (if-let ((maybe-id (org-entry-get nil anki-helper-prop-note-id)))
       (anki-helper-request 'guiBrowse (concat "nid:" maybe-id))
     (message "anki-helper: please select a note.")))
 
