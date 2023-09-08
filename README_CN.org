@@ -154,7 +154,7 @@ anki-helper 提供了几个 API ：
 [[examples/make-card-interactively.gif]]
 * 修改默认的行为
 ** 修改模板字段填充方式
-变量 ~anki-helper-fields-get-alist~ 设置了两个基本的字段获取函数：~anki-helper-fields-get-default~ 用于 Anki 默认的 Basic 模板，使用标题行为卡片正面，内容为卡片反面、~anki-helper-fields-get-cloze~ 用于 Anki 默认的 Cloze 模板，使用标题下的内容来填充 ~Text~ 字段，~Back Extra~ 字段留空。您可以定义自己的字段获取函数，详见 ~anki-helper-fields-get-alist~ 的文档。
+变量 ~anki-helper-fields-get-alist~ 设置了两个基本的字段获取函数：~anki-helper-fields-get-default~ 用于 Anki 默认的 Basic 模板，使用标题行为卡片正面，内容为卡片反面、~anki-helper-fields-get-cloze~ 用于 Anki 默认的 Cloze 模板，使用标题下的内容来填充 ~Text~ 字段，~Back Extra~ 字段为标题行。您可以定义自己的字段获取函数，详见 ~anki-helper-fields-get-alist~ 的文档。
 ** 修改回调函数
 详见 ~anki-helper-callback-alist~
 * 更多自定义

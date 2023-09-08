@@ -451,7 +451,7 @@ entry."
     (list (if anki-helper-cloze-use-verbatim
               (anki-helper--make-cloze back)
             back)
-          "")))
+          (car pair))))
 
 (defun anki-helper--entry-get-fields (note-type)
   "Get the fileds info of the current entry for NOTE-TYPE."
