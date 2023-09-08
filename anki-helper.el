@@ -639,16 +639,20 @@ See `anki-helper-entry-sync-all' for details."
       (anki-helper-entry-sync-all))))
 
 ;;;###autoload
-(defun anki-helper-entry-update-all ()
+(defun anki-helper-entry-update-all (&optional force)
   "Update all modified Anki entries in the current buffer.
+
+With a prefix argument FORCE, update all notes no matter whether
+there are any changes.
 
 See `org-map-entries', `anki-helper-entry-modified-p' and
 `anki-helper--get-match' for details."
-  (interactive)
+  (interactive "p")
   (if-let* ((result (anki-helper--entry-get-all
                      (concat (format "%s={.+}" anki-helper-prop-note-id)
                              (anki-helper--get-match))
-                     #'anki-helper-entry-modified-p))
+                     (unless force
+                       #'anki-helper-entry-modified-p)))
             (body (mapcar #'anki-helper--action-updatenote (car result))))
       (anki-helper-request 'multi
                            body
@@ -657,15 +661,18 @@ See `org-map-entries', `anki-helper-entry-modified-p' and
     (message "anki-helper: no update needed.")))
 
 ;;;###autoload
-(defun anki-helper-entry-update ()
+(defun anki-helper-entry-update (&optional force)
   "Update the Anki entry under the cursor.
 
+With a prefix argument FORCE, update current note no matter whether
+there are any changes.
+
 See `anki-helper-entry-update-all' for details."
-  (interactive)
+  (interactive "p")
   (save-excursion
     (save-restriction
       (org-narrow-to-subtree)
-      (anki-helper-entry-update-all))))
+      (anki-helper-entry-update-all force))))
 
 ;;;###autoload
 (defun anki-helper-entry-delete-all ()
