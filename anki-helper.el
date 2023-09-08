@@ -156,7 +156,8 @@ landed on the moon in {{c1:1969}}\"."
     (addNotes . anki-helper--action-addnotes)
     (deleteNotes . anki-helper--action-deletenotes)
     (updateNote . anki-helper--action-updatenote)
-    (multi . anki-helper--action-multi)))
+    (multi . anki-helper--action-multi)
+    (guiBrowse . anki-helper--action-guibrowse)))
 
 (defun anki-helper--get-note-fields (note)
   (cdr (assoc note anki-helper-note-types)))
@@ -216,6 +217,12 @@ landed on the moon in {{c1:1969}}\"."
    "deleteNotes"
    `(("notes" .
       (,@ids)))))
+
+(defun anki-helper--action-guibrowse (query)
+  "Create an `guiBrowse' json structure for IDS."
+  (anki-helper--body
+   "guiBrowse"
+   `(("query" . ,query))))
 
 (defun anki-helper--get-global-keyword (keyword)
   "Get global property by KEYWORD."
@@ -688,6 +695,14 @@ See `anki-helper-entry-delete-all' for details."
                          (list id)
                          (list :command 'anki-helper-entry-delete
                                :orig-info (list (point-marker))))))
+
+;;;###autoload
+(defun anki-helper-entry-browse ()
+  "Browse entry at point on Anki's browser dialog with searching nid."
+  (interactive)
+  (if-let ((maybe-id (org-entry-get nil org-anki-prop-note-id)))
+      (anki-helper-request 'guiBrowse (concat "nid:" maybe-id))
+    (message "anki-helper: please select a note.")))
 
 ;;;###autoload
 (defun anki-helper-set-front-region ()
