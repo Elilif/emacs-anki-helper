@@ -314,8 +314,10 @@ landed on the moon in {{c1:1969}}\"."
   (let* ((note-type (anki-helper--find-prop
                      anki-helper-note-type
                      anki-helper-default-note-type))
-         (fields (anki-helper--entry-get-fields note-type)))
-    (md5 (anki-helper--filelds2string fields ""))))
+         (fields (anki-helper--entry-get-fields note-type))
+         (fields-string (anki-helper--filelds2string fields ""))
+         (tags (anki-helper--get-tags)))
+    (md5 (mapconcat #'identity (push fields-string tags)))))
 
 (defun anki-helper-entry-set-hash ()
   (org-set-property anki-helper-prop-note-hash
