@@ -565,9 +565,14 @@ See `org-map-entries' for details about MATCH and SKIP."
              (string= orig-hash new-hash))
         (point))))
 
-(cl-defun anki-helper-create-note (contents &key id tags
-                                            (deck anki-helper-default-deck)
-                                            (model anki-helper-default-note-type))
+(cl-defun anki-helper-create-note (contents &key id
+                                            (tags (anki-helper--get-tags))
+                                            (deck (anki-helper--find-prop
+                                                   anki-helper-prop-deck
+                                                   anki-helper-default-deck))
+                                            (model (anki-helper--find-prop
+                                                    anki-helper-note-type
+                                                    anki-helper-default-note-type)))
   "Construct an object of type `anki-helper--note'.
 
 CONTENTS should be a list of string, where each string
