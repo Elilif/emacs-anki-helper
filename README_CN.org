@@ -1,12 +1,11 @@
-* Anki-helper(WIP)
+* Anki-helper
+在 Emacs 中管理您的 Anki 卡片。
 * 为什么用 Anki-helper
 目前辅助 Anki 制卡的插件主要是 [[https://github.com/eyeinsky/org-anki][eyeinsky/org-anki]] 和 [[https://github.com/louietan/anki-editor][louietan/anki-editor]] 。
 
-anki-editor 我只是很浅的用了一下，马上就被它的格式要求给劝退了： anki-editor 需要使用专门的标题行来标记卡片的正反面。这首先导致原有的笔记不能快速转化为卡片，需要自己转换；其次制作好的卡片几乎只能由 anki-editor 使用，无法融入到现有的工作流
-中，需要专门的文件来存放。
+anki-editor 我只是很浅的用了一下，马上就被它的格式要求给劝退了： anki-editor 需要使用专门的标题行来标记卡片的正反面。这首先导致原有的笔记不能快速转化为卡片，需要自己转换；其次制作好的卡片几乎只能由 anki-editor 使用，无法融入到现有的工作流中，需要专门的文件来存放。
 
-org-anki 比较好地解决了上述缺点，它使用当前的标题栏作为正面，笔记内容作为反面。这正好和我记笔记的方式吻合，原有的笔记马上就能拿来制卡，也不需要专门的文件。所以 org-anki 我用了很长一段时间，通过pdf-tools + org-note + org-anki 实践渐进式阅读，
-已经读了很多大部头的书。
+org-anki 比较好地解决了上述缺点，它使用当前的标题栏作为正面，笔记内容作为反面。这正好和我记笔记的方式吻合，原有的笔记马上就能拿来制卡，也不需要专门的文件。所以 org-anki 我用了很长一段时间，通过pdf-tools + org-note + org-anki 实践渐进式阅读，已经读了很多大部头的书。
 
 org-anki 的缺点如下：
 

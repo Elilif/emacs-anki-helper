@@ -1,2 +1,202 @@
-* Anki-helper(WIP)
+* Anki-helper
+Manage your Anki cards in Emacs
 [[README_CN.org][中文文档]]
+* Why Anki-helper
+Currently, the main packages for creating Anki cards are [[https://github.com/eyeinsky/org-anki][eyeinsky/org-anki]] and [[https://github.com/louietan/anki-editor][louietan/anki-editor]].
+
+anki-editor requires the use of dedicated header lines to mark the front and back sides of the cards. This first leads to the inability to quickly convert existing notes into cards, requiring manual conversion; secondly, the created cards can only be used by anki-editor and cannot be integrated into existing workflows, requiring a dedicated file to store them.
+
+org-anki solves the above shortcomings well. It uses the current title bar as the front side and its content as the back side. But org-anki has its own drawbacks:
+** Speed
+Taking [[examples/headings.org]] as an example, the time comparison for synchronizing and deleting all cards (422 in total) between org-anki and anki-helper is as follows:
+
+  |             | (benchmark 1 '(xxx-sync-all))     | (benchmark 1 '(xxx-delete-all))   |
+  |-------------+-----------------------------------+-----------------------------------|
+  | org-anki    | 123.855104s (35.423518s in 5 GCs) | 150.862886s (21.709634s in 8 GCs) |
+  | anki-helper | 0.410945s                         | 0.098308s                         |
+** Complete customizability
+Another issue with the org-anki is that it only applies to entries and does not provide an API for adding custom card-making functions. One advantage of having one card per entry is that it can save card information, such as card ID and whether it has been modified, making it convenient for future modifications. Another advantage is that different operations can be performed on different entries. However, some types of cards do not require this type of additional information, such as vocabulary cards. I only need to collect new words and then synchronize them with Anki, with very few modifications afterwards. Obviously, having one entry per word is quite wasteful.
+
+   The org-anki supports only two ways of filling fields: one is using the title line as the front side of the card and the content as the back side; the other is using subheadings to differentiate fields. The latter approach is similar to anki-editor. The problem here is that everyone has different habits and custom templates can be very diverse, so it is necessary to provide a set of flexible APIs to facilitate users in creating their own field filling functions.
+** Support for media file
+The PR for image processing has not been merged yet, and other multimedia content is also not supported.
+** Respect original text
+For Cloze type cards, the usual practice is to use the format ~{{c1:xxx}}~, but this will disrupt the original content and is not conducive to other operations. This is actually a kind of exclusivity. 
+
+anki-helper can use the verbatim marker(=) as the marker of cloze deletion(because verbatim and code will all be transformed into ~<code>~ tag by default when exported to HTML.). when set ~anki-helper-cloze-use-verbatim~  to non-nil,  verbatim text will be treated as cloze deletions. So the following text:
+   
+   #+begin_example
+     =Canberra= was founded in =1913=.
+   #+end_example
+
+   will be converted into the following format while exporting to Anki:
+
+   #+begin_example
+     {{c1::Canberra}} was founded in {{c2::1913}}.
+   #+end_example
+
+   *Note*: Following cloze deletions are not supported for now.
+
+   #+begin_example
+     {{c1::Canberra}} was founded in {{c1::1913}}.
+   #+end_example
+
+* Installation
+** Use package.el
+~M-x package-vc-install RET https://github.com/Elilif/emacs-anki-helper RET~
+** Manually
+#+begin_src elisp
+  (add-to-list 'load-path "path-to-anki-helper")
+  (require 'anki-helper)
+#+end_src
+* Usage
+Using anki-helper is similar to org-anki.
+** Variables
+*** Global variables
+1. ~anki-helper-cloze-use-verbatim~
+
+   Non-nil means verbatim text will be treated as cloze deletions. So the following text:
+   
+   #+begin_example
+     =Canberra= was founded in =1913=.
+   #+end_example
+
+   will be converted into the following format while exporting to Anki:
+
+   #+begin_example
+     {{c1::Canberra}} was founded in {{c2::1913}}.
+   #+end_example
+
+   *Note*: Following cloze deletions are not supported for now.
+
+   #+begin_example
+     {{c1::Canberra}} was founded in {{c1::1913}}.
+   #+end_example
+
+2. ~anki-helper-default-note-type~
+
+   Default note type.
+3. ~anki-helper-default-deck~
+
+   Default deck name.
+4. ~anki-helper-default-match~
+
+   Default match used in ~org-map-entries~ for sync all.
+5. ~anki-helper-skip-function~
+
+   Function used to skip entries.
+6. ~anki-helper-inherit-tags~
+
+   Inherit tags, set to nil to turn off.
+7. ~anki-helper-media-directory~
+
+   Default Anki media directory.
+8. ~anki-helper-note-types~
+
+   Default fields for note types.
+*** file-local variables
+1. ~#+ANKI_DECK:~
+2. ~#+ANKI_MATCH:~
+3. ~#+ANKI_NOTE_TYPE:~
+4. ~#+ANKI_TAGS:~
+
+
+The above keywords correspond to their respective global variables.
+*** Properties
+1. ~ANKI_NOTE_TYPE~
+2. ~ANKI_DECK~
+
+
+Each entry can have its own properties. The priority of the variables mentioned above is ~Properties > file-local variables > global variables~.
+** Cards that are entries
+A series of functions are provided by default to operate on cards of the entry type (more operations will be added later):
+*** Functions
+
+1. ~anki-helper-entry-sync~
+
+   Turn the entry under the cursor into a card, if it is already a card, ignore it.
+2. ~anki-helper-entry-sync-all~
+
+   Create cards for all entries in the current buffer that meet the condition, and ignore those that are already cards.
+3. ~anki-helper-entry-delete~
+
+   Delete the entry under the cursor if it is a card and meets the condition.
+4. ~anki-helper-entry-delete-all~
+
+   Delete all cards in the current buffer that meet the specified condition.
+5. ~anki-helper-entry-update~
+   Update the entry under the cursor if it is a card and is modified.
+6. ~anki-helper-entry-update-all~
+
+   Update all cards in the current buffer that are modified.
+** Card that are not entries.
+anki-helper provides several APIs：
+1. ~anki-helper-request~
+2. ~anki-helper-create-note~
+3. ~anki-helper-create-notes~
+
+
+Please refer to the function documentation for specific usage details.
+
+As an example, you can refer to the functions =anki-helper-set-front-region= and =anki-helper-make-two-sided-card=, which provide an interactive card-making method:
+
+[[examples/make-card-interactively.gif]]
+
+
+
+* Change the default behavior
+** Modify template field filling method
+
+~anki-helper-fields-get-alist~ sets two basic filed-filling functions:
+
+1. ~anki-helper-fields-get-alist~
+
+   This function is used for the "Bacis" note type of Anki, which use the raw value of the headline as the front and the content of the entry as the back.
+2. ~~anki-helper-fields-get-cloze~~
+
+   This functions is used for the "Cloze" note type of Anki, which use the content of the entry to fill the "Text" field and use the raw value of the headline to fill the "Back Extra" field.
+** Modify callback functions
+See ~anki-helper-callback-alist~ for details.
+* More customization
+** Add backlinks to cards
+It is desirable to have backlinks in your cards that point to the original text.
+
+1. Install this add-on [[https://ankiweb.net/shared/info/879473266][Open link in external Program]] and add your own note type.
+   Please read the documentation of the add-on carefully.
+   
+   In this example, the name of the note type is "Basic (with backlink)", and its four fields are "Front", "Back", "Source", and "Location".
+2. Execute the following code
+   #+begin_src elisp
+     (server-start)
+
+     (defun anki-helper--entry-locate (filename entry-name)
+       (find-file filename)
+       (let* ((data (org-element-parse-buffer))
+              (pos (org-element-map data '(headline)
+                     (lambda (elt)
+                       (when (string= (org-element-property :raw-value elt)
+                                      entry-name)
+                         (org-element-property :begin elt)))
+                     nil t)))
+         (goto-char pos)
+         (org-reveal)))
+
+     (defun anki-helper-fields-get-with-backlink ()
+       "Get filed info of the current entry with backlink."
+       (let* ((front-and-back (anki-helper-fields-get-default))
+              (filename (file-name-nondirectory (buffer-file-name)))
+              (elt (plist-get (org-element-at-point) 'headline))
+              (entry (plist-get elt :raw-value)))
+         `(,@front-and-back ,filename ,entry)))
+
+     (setq anki-helper-note-types '(("Basic (with backlink)" "Front" "Back" "Source" "Location"))
+           anki-helper-fields-get-alist '(("Basic (with backlink)" . anki-helper-fields-get-with-backlink))
+           anki-helper-default-note-type "Basic (with backlink)")
+#+end_src
+3. Modify the config of the add-on
+   - comand/program :: ~/usr/local/bin/emacsclient~
+   - command open on page arguments :: ~-e '(anki-helper--entry-locate PATH "PAGE")'~
+
+
+That's done!
+[[examples/notes-with-backlink.gif]]

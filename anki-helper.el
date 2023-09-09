@@ -1,17 +1,17 @@
-;;; anki-helper.el --- create anki cards and sync them -*- lexical-binding: t; -*-
+;;; anki-helper.el --- Manage your Anki cards in Emacs -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2023  Eli Qian
 
 ;; Author: Eli Qian <eli.q.qian@gmail.com>
 ;; URL: https://github.com/Elilif/emacs-anki-helper
 ;; Keywords: flashcards
-;; Version: 0.2.0
+;; Version: 1.0.0
 ;; Package-Requires: ((emacs "29.1"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;;; Commentary:
-;; Create anki cards and sync them
+;; Manage your Anki cards in Emacs
 ;; some functions and variables are stolen from
 ;; https://github.com/eyeinsky/org-anki
 
