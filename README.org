@@ -6,7 +6,7 @@ Currently, the main packages for creating Anki cards are [[https://github.com/ey
 
 anki-editor requires the use of dedicated header lines to mark the front and back sides of the cards. This first leads to the inability to quickly convert existing notes into cards, requiring manual conversion; secondly, the created cards can only be used by anki-editor and cannot be integrated into existing workflows, requiring a dedicated file to store them.
 
-org-anki solves the above shortcomings well. It uses the current title bar as the front side and its content as the back side. But org-anki has its own drawbacks:
+org-anki solves the above shortcomings well. It uses the headline as the front side and its content as the back side. But org-anki has its own drawbacks:
 ** Speed
 Taking [[examples/headings.org]] as an example, the time comparison for synchronizing and deleting all cards (422 in total) between org-anki and anki-helper is as follows:
 
@@ -14,12 +14,14 @@ Taking [[examples/headings.org]] as an example, the time comparison for synchron
   |-------------+-----------------------------------+-----------------------------------|
   | org-anki    | 123.855104s (35.423518s in 5 GCs) | 150.862886s (21.709634s in 8 GCs) |
   | anki-helper | 0.410945s                         | 0.098308s                         |
-** Complete customizability
+** Customizability
 Another issue with the org-anki is that it only applies to entries and does not provide an API for adding custom card-making functions. One advantage of having one card per entry is that it can save card information, such as card ID and whether it has been modified, making it convenient for future modifications. Another advantage is that different operations can be performed on different entries. However, some types of cards do not require this type of additional information, such as vocabulary cards. I only need to collect new words and then synchronize them with Anki, with very few modifications afterwards. Obviously, having one entry per word is quite wasteful.
 
-   The org-anki supports only two ways of filling fields: one is using the title line as the front side of the card and the content as the back side; the other is using subheadings to differentiate fields. The latter approach is similar to anki-editor. The problem here is that everyone has different habits and custom templates can be very diverse, so it is necessary to provide a set of flexible APIs to facilitate users in creating their own field filling functions.
+The org-anki supports only two ways of filling fields: one is using the title line as the front side of the card and the content as the back side; the other is using subheadings to differentiate fields. The latter approach is similar to anki-editor. The problem here is that everyone has different habits and custom templates can be very diverse, so it is necessary to provide a set of flexible APIs to facilitate users in creating their own field filling functions.
 ** Support for media file
-The PR for image processing has not been merged yet, and other multimedia content is also not supported.
+The PR for image processing of org-anki has not been merged yet, and other multimedia content is also not supported.
+
+anki-helper supports including images and audio file links in cards. These original files will be copied to the media folder of Anki.
 ** Respect original text
 For Cloze type cards, the usual practice is to use the format ~{{c1:xxx}}~, but this will disrupt the original content and is not conducive to other operations. This is actually a kind of exclusivity. 
 
@@ -50,7 +52,6 @@ anki-helper can use the verbatim marker(=) as the marker of cloze deletion(becau
   (require 'anki-helper)
 #+end_src
 * Usage
-Using anki-helper is similar to org-anki.
 ** Variables
 *** Global variables
 1. ~anki-helper-cloze-use-verbatim~
@@ -125,6 +126,7 @@ A series of functions are provided by default to operate on cards of the entry t
 
    Delete all cards in the current buffer that meet the specified condition.
 5. ~anki-helper-entry-update~
+   
    Update the entry under the cursor if it is a card and is modified.
 6. ~anki-helper-entry-update-all~
 
@@ -152,7 +154,7 @@ As an example, you can refer to the functions =anki-helper-set-front-region= and
 1. ~anki-helper-fields-get-alist~
 
    This function is used for the "Bacis" note type of Anki, which use the raw value of the headline as the front and the content of the entry as the back.
-2. ~~anki-helper-fields-get-cloze~~
+2. ~anki-helper-fields-get-cloze~
 
    This functions is used for the "Cloze" note type of Anki, which use the content of the entry to fill the "Text" field and use the raw value of the headline to fill the "Back Extra" field.
 ** Modify callback functions
