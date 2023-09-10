@@ -36,16 +36,20 @@ org-anki 的缺点如下：
 
 1. 尽可能地保持原始文本内容不变
    
-   对于 Cloze 类型的卡片来说，常规的做法是使用 ~{{c1:xxx}}~ 这种形式，但是这会破坏原有内容，不利于其他操作。这其实是一种变相的专有化。我在设计 anki-helper 的时候想到 org 文件在导出到 html 的时候，默认情况下 code 和 verbatim 都会变成 ~<code>~ 标签。所以考虑是不是能够将其中的一个拿来充当 Cloze 的标记。经过一番尝试过后我发现效果不错。如果你有下述文本：
+   对于 Cloze 类型的卡片来说，常规的做法是使用 ~{{c1:xxx}}~ 这种形式，但是这会破坏原有内容，不利于其他操作。这其实是一种变相的专有化。
+
+   Anki-helper 使用 org-mode 内置的富文本标记来作为完形填空的标志，假设有以下文本：
    #+begin_example
-     =Canberra= was founded in =1913=.
+     ,*Canberra* was founded in *1913*.
    #+end_example
    在制卡的过程中，它会变成如下格式：
    #+begin_example
      {{c1::Canberra}} was founded in {{c2::1913}}.
    #+end_example
 
-   *注意*: 此功能由变量 ~anki-helper-cloze-use-verbatim~ 控制，默认情况下关闭。同时不支持下述类型的转化：
+   我认为这样是符合直觉的，因为你强调的部分往往是你想要记住的部分。
+
+   *注意*: 此功能由变量 ~anki-helper-cloze-use-emphasis~ 控制，默认情况下关闭。同时不支持下述类型的转化：
    #+begin_example
      {{c1::Canberra}} was founded in {{c1::1913}}.
    #+end_example
@@ -65,11 +69,11 @@ org-anki 的缺点如下：
 使用方法和 org-anki 类似。
 ** 变量
 *** 全局变量
-1. ~anki-helper-cloze-use-verbatim~
+1. ~anki-helper-cloze-use-emphasis~
 
-   是否将 verbatim(=) 视为 Cloze 的标记。如果为 ~t~ ，则文本
+   是否将 ~org-emphasis-alist~ 中的标记视为 Cloze 的标记。该值如果是一个符号，如 ~bold~，则文本
    #+begin_example
-     =Canberra= was founded in =1913=.
+     ,*Canberra* was founded in *1913*.
    #+end_example
    在制卡的过程中会变成如下格式：
    #+begin_example
