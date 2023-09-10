@@ -135,19 +135,34 @@ Accept two arguments: INFO and RESULT."
   :type 'function
   :group 'anki-helper)
 
-(defcustom anki-helper-cloze-use-verbatim nil
-  "Non-nil means verbatim text will be treated as cloze deletions.
+(defcustom anki-helper-cloze-use-emphasis nil
+  "Non-nil means emphasized text will be treated as cloze deletions.
+
+The available options are:
+- nil
+- bold
+- italic
+- underline
+- verbatim
+- code
+- strike-through
 
 For instance:
 
 \"Man landed on the moon in =1969=\" will be converted into \"Man
 landed on the moon in {{c1:1969}}\"."
-  :type 'boolean
+  :type '(choice
+          (const :tag "None" nil)
+          (const :tag "Bold" bold)
+          (const :tag "Italic" italic)
+          (const :tag "Underline" underline)
+          (const :tag "Verbatim" verbatim)
+          (const :tag "Code" code)
+          (const :tag "Strike-through" strike-through))
   :group 'anki-helper)
 
 (cl-defstruct anki-helper--note maybe-id fields tags deck model orig-pos hash)
 
-(defvar anki-helper--cloze-counter 0)
 (defvar anki-helper--org2html-image-counter 0)
 (defvar anki-helper--process-alist nil)
 
@@ -262,14 +277,16 @@ landed on the moon in {{c1:1969}}\"."
       anki-helper-default-match)))
 
 (defun anki-helper--make-cloze (string)
-  (let ((data (org-element-parse-secondary-string string '(verbatim)))
+  (let ((data (org-element-parse-secondary-string string `(,anki-helper-cloze-use-emphasis)))
         (anki-helper--cloze-counter 0))
     (mapconcat (lambda (elt)
                  (if (stringp elt)
                      elt
                    (concat (format "{{c%d::%s}}"
                                    (cl-incf anki-helper--cloze-counter)
-                                   (org-element-property :value elt))
+                                   (if (eq anki-helper-cloze-use-emphasis 'verbatim)
+                                       (org-element-property :value elt)
+                                     (car (org-element-contents elt))))
                            (make-string (org-element-property :post-blank elt)
                                         32))))
                data)))
@@ -303,8 +320,7 @@ landed on the moon in {{c1:1969}}\"."
 
 (defun anki-helper--org2html (string)
   (let ((org-export-filter-link-functions '(anki-helper--org2html-link))
-        (anki-helper--org2html-image-counter 0)
-        (anki-helper--cloze-counter 0))
+        (anki-helper--org2html-image-counter 0))
     (org-export-string-as string 'html t '(:with-toc nil))))
 
 (defun anki-helper--default-callback (_info _result)
@@ -448,7 +464,7 @@ entry."
 \"Cloze\" note-type."
   (let* ((pair (anki-helper-fields-get-default))
          (back (cadr pair)))
-    (list (if anki-helper-cloze-use-verbatim
+    (list (if anki-helper-cloze-use-emphasis
               (anki-helper--make-cloze back)
             back)
           (car pair))))
