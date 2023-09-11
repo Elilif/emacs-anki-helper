@@ -25,23 +25,22 @@ anki-helper supports including images and audio file links in cards. These origi
 ** Respect original text
 For Cloze type cards, the usual practice is to use the format ~{{c1:xxx}}~, but this will disrupt the original content and is not conducive to other operations. This is actually a kind of exclusivity. 
 
-anki-helper can use the verbatim marker(=) as the marker of cloze deletion(because verbatim and code will all be transformed into ~<code>~ tag by default when exported to HTML.). when set ~anki-helper-cloze-use-verbatim~  to non-nil,  verbatim text will be treated as cloze deletions. So the following text:
-   
-   #+begin_example
-     =Canberra= was founded in =1913=.
-   #+end_example
+Anki-helper uses the built-in rich text markup of org-mode as the indicator for cloze deletion. Assuming we have the following text:   
+#+begin_example
+  ,*Canberra* was founded in *1913*.
+#+end_example
 
-   will be converted into the following format while exporting to Anki:
+will be converted into the following format while exporting to Anki:
 
-   #+begin_example
-     {{c1::Canberra}} was founded in {{c2::1913}}.
-   #+end_example
+#+begin_example
+  {{c1::Canberra}} was founded in {{c2::1913}}.
+#+end_example
 
-   *Note*: Following cloze deletions are not supported for now.
+*Note*: Following cloze deletions are not supported for now.
 
-   #+begin_example
-     {{c1::Canberra}} was founded in {{c1::1913}}.
-   #+end_example
+#+begin_example
+  {{c1::Canberra}} was founded in {{c1::1913}}.
+#+end_example
 
 * Installation
 ** Use package.el
@@ -54,12 +53,12 @@ anki-helper can use the verbatim marker(=) as the marker of cloze deletion(becau
 * Usage
 ** Variables
 *** Global variables
-1. ~anki-helper-cloze-use-verbatim~
+1. ~anki-helper-cloze-use-emphasis~
 
-   Non-nil means verbatim text will be treated as cloze deletions. So the following text:
+   If the value is a symbol, such as ~bold~, then the following text
    
    #+begin_example
-     =Canberra= was founded in =1913=.
+     ,*Canberra* was founded in *1913*.
    #+end_example
 
    will be converted into the following format while exporting to Anki:
