@@ -286,12 +286,84 @@ landed on the moon in {{c1:1969}}\"."
                                    (cl-incf anki-helper--cloze-counter)
                                    (if (eq anki-helper-cloze-use-emphasis 'verbatim)
                                        (org-element-property :value elt)
-                                     (car (org-element-contents elt))))
+                                     (if-let* ((content (car (org-element-contents elt)))
+                                               ((stringp content)))
+                                         content
+                                       (org-element-property :value content))))
                            (make-string (org-element-property :post-blank elt)
                                         32))))
                data)))
 
-(defun anki-helper--org2html-link (text backend info)
+(defun anki-helper--copy-ltximg (latex)
+  "Copy the preview image of LATEX to the Anki media directory."
+  (when (string-match-p " $\\|\n\n$" (substring latex -2))
+    (setq latex (substring latex 0 -1)))
+  (let* ((face (face-at-point))
+         (fg (let ((color (plist-get org-format-latex-options
+                                     :foreground)))
+               (cond
+                ((eq color 'auto)
+                 (face-attribute face :foreground nil 'default))
+                ((eq color 'default)
+                 (face-attribute 'default :foreground nil))
+                (t color))))
+         (bg (let ((color (plist-get org-format-latex-options
+                                     :background)))
+               (cond
+                ((eq color 'auto)
+                 (face-attribute face :background nil 'default))
+                ((eq color 'default)
+                 (face-attribute 'default :background nil))
+                (t color))))
+         (hash (sha1 (prin1-to-string
+                      (list org-format-latex-header
+                            org-latex-default-packages-alist
+                            org-latex-packages-alist
+                            org-format-latex-options
+                            'forbuffer latex fg bg))))
+         (processing-info
+          (cdr (assq org-preview-latex-default-process
+                     org-preview-latex-process-alist)))
+         (imagetype (or (plist-get processing-info :image-output-type) "png"))
+         (prefix (concat org-preview-latex-image-directory
+                         "org-ltximg"))
+         (dir default-directory)
+         (absprefix (expand-file-name prefix dir))
+         (todir (file-name-directory absprefix))
+         (origin-file (format "%s_%s.%s" absprefix hash imagetype))
+         (base-name (file-name-nondirectory origin-file))
+         (target-file (file-name-concat
+                       anki-helper-media-directory
+                       base-name))
+         (options
+          (org-combine-plists
+           org-format-latex-options
+           `(:foreground ,fg :background ,bg))))
+    (unless (file-directory-p todir)
+      (make-directory todir t))
+    (unless (file-exists-p origin-file)
+      (org-create-formula-image
+       latex origin-file options 'forbuffer org-preview-latex-default-process))
+    (copy-file origin-file target-file t)
+    base-name))
+
+(defun anki-helper--ox-html-latex-frag (text backend _info)
+  "Translate TEXT fragment to html."
+  (when (eq backend 'html)
+    (let* ((base-name (anki-helper--copy-ltximg text))
+           (img (format " <img class=\"latex\" src=\"%s\"> " base-name)))
+      (if (or (string-match-p (cadr (assoc "\\[" org-latex-regexps)) text)
+              (string-match-p (cadr (assoc "$$" org-latex-regexps)) text))
+          (format "<br>%s<br>" img)
+        img))))
+
+(defun anki-helper--ox-html-latex-env (text backend _info)
+  "Translate TEXT enironment to html."
+  (when (eq backend 'html)
+    (let ((base-name (anki-helper--copy-ltximg text)))
+      (format " <img class=\"latex\" src=\"%s\"> " base-name))))
+
+(defun anki-helper--ox-html-link (text backend info)
   (when (eq backend 'html)
     (when-let*
         ((link (nth anki-helper--org2html-image-counter
@@ -319,7 +391,9 @@ landed on the moon in {{c1:1969}}\"."
   text)
 
 (defun anki-helper--org2html (string)
-  (let ((org-export-filter-link-functions '(anki-helper--org2html-link))
+  (let ((org-export-filter-link-functions '(anki-helper--ox-html-link))
+        (org-export-filter-latex-environment-functions '(anki-helper--ox-html-latex-env))
+        (org-export-filter-latex-fragment-functions '(anki-helper--ox-html-latex-frag))
         (anki-helper--org2html-image-counter 0))
     (org-export-string-as string 'html t '(:with-toc nil))))
 
