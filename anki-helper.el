@@ -841,7 +841,9 @@ and create a two-sided flashcard."
       (deactivate-mark t))))
 
 ;;;###autoload
-(defun anki-helper-make-two-sided-card (beg end)
+(cl-defun anki-helper-make-two-sided-card (beg end &optional
+                                               (front-transformer #'identity)
+                                               (back-transformer #'identity))
   "Create a two-sided flashcard.
 
 Use the text between START and END as the back of the card. Call
@@ -856,10 +858,12 @@ more informations."
     (user-error "Please select a region!"))
   (unless (overlay-start mouse-secondary-overlay)
     (user-error "Please call `anki-helper-set-front-region' first!"))
-  (let* ((front (buffer-substring-no-properties
-                 (overlay-start mouse-secondary-overlay)
-                 (overlay-end mouse-secondary-overlay)))
-         (back (buffer-substring-no-properties beg end)))
+  (let* ((front (funcall front-transformer
+                         (buffer-substring-no-properties
+                          (overlay-start mouse-secondary-overlay)
+                          (overlay-end mouse-secondary-overlay))))
+         (back (funcall back-transformer
+                        (buffer-substring-no-properties beg end))))
     (anki-helper-request 'addNote (anki-helper-create-note (list front back)))
     (delete-overlay mouse-secondary-overlay)
     (deactivate-mark)))
