@@ -161,6 +161,20 @@ landed on the moon in {{c1:1969}}\"."
           (const :tag "Strike-through" strike-through))
   :group 'anki-helper)
 
+(defcustom anki-helper-ox-filter-latex-env-functions '(anki-helper--ox-html-latex-env)
+  "List of functions applied to a transcoded latex-environment.
+
+See `org-export-filter-latex-environment-functions' for details."
+  :type 'list
+  :group 'anki-helper)
+
+(defcustom anki-helper-ox-filter-latex-frag-functions '(anki-helper--ox-html-latex-frag)
+  "List of functions applied to a transcoded latex-fragment.
+
+See `org-export-filter-latex-fragment-functions' for details."
+  :type 'list
+  :group 'anki-helper)
+
 (cl-defstruct anki-helper--note maybe-id fields tags deck model orig-pos hash)
 
 (defvar anki-helper--org2html-image-counter 0)
@@ -392,8 +406,8 @@ landed on the moon in {{c1:1969}}\"."
 
 (defun anki-helper--org2html (string)
   (let ((org-export-filter-link-functions '(anki-helper--ox-html-link))
-        (org-export-filter-latex-environment-functions '(anki-helper--ox-html-latex-env))
-        (org-export-filter-latex-fragment-functions '(anki-helper--ox-html-latex-frag))
+        (org-export-filter-latex-environment-functions anki-helper-ox-filter-latex-env-functions)
+        (org-export-filter-latex-fragment-functions anki-helper-ox-filter-latex-frag-functions)
         (anki-helper--org2html-image-counter 0))
     (org-export-string-as string 'html t '(:with-toc nil))))
 
