@@ -79,19 +79,22 @@ will be converted into the following format while exporting to Anki:
 3. ~anki-helper-default-deck~
 
    Default deck name.
-4. ~anki-helper-default-match~
+4. ~anki-helper-default-tags~
+
+   Default card tags.
+5. ~anki-helper-default-match~
 
    Default match used in ~org-map-entries~ for sync all.
-5. ~anki-helper-skip-function~
+6. ~anki-helper-skip-function~
 
    Function used to skip entries.
-6. ~anki-helper-inherit-tags~
+7. ~anki-helper-inherit-tags~
 
    Inherit tags, set to nil to turn off.
-7. ~anki-helper-media-directory~
+8. ~anki-helper-media-directory~
 
    Default Anki media directory.
-8. ~anki-helper-note-types~
+9. ~anki-helper-note-types~
 
    Default fields for note types.
 *** file-local variables

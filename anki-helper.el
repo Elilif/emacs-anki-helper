@@ -46,6 +46,11 @@
   :type 'string
   :group 'anki-helper)
 
+(defcustom anki-helper-default-tags nil
+  "Default tags."
+  :type '(repeat string)
+  :group 'anki-helper)
+
 (defcustom anki-helper-allow-duplicates nil
   "Allow duplicates."
   :type '(choice (const :tag "Yes" t)
@@ -274,15 +279,17 @@ See `org-export-filter-latex-fragment-functions' for details."
                name)))))
 
 (defun anki-helper--get-tags ()
-  (delete-dups
-   (split-string
-    (let ((global-tags (anki-helper--get-global-keyword anki-helper-prop-global-tags)))
-      (concat
-       (if anki-helper-inherit-tags
-           (substring-no-properties (or (org-entry-get nil "ALLTAGS") ""))
-         (org-entry-get nil "TAGS"))
-       global-tags))
-    ":" t)))
+  (append
+   (delete-dups
+    (split-string
+     (let ((global-tags (anki-helper--get-global-keyword anki-helper-prop-global-tags)))
+       (concat
+        (if anki-helper-inherit-tags
+            (substring-no-properties (or (org-entry-get nil "ALLTAGS") ""))
+          (org-entry-get nil "TAGS"))
+        global-tags))
+     ":" t))
+   anki-helper-default-tags))
 
 (defun anki-helper--get-match ()
   (let ((file-global (anki-helper--get-global-keyword anki-helper-match)))

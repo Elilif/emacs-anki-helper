@@ -91,19 +91,22 @@ org-anki 的缺点如下：
 3. ~anki-helper-default-deck~
 
    默认的卡组名称
-4. ~anki-helper-default-match~
+4. ~anki-helper-default-tags~
+
+   默认的卡片标签
+5. ~anki-helper-default-match~
 
    用于筛选满足条件的 entry ，详见 ~org-map-entries~
-5. ~anki-helper-skip-function~
+6. ~anki-helper-skip-function~
 
    用于判断是否跳过某个 entry ，详见 ~org-map-entries~
-6. ~anki-helper-inherit-tags~
+7. ~anki-helper-inherit-tags~
 
    是否继承父标题的标签
-7. ~anki-helper-media-directory~
+8. ~anki-helper-media-directory~
 
    Anki 保存多媒体文件的目录
-8. ~anki-helper-note-types~
+9. ~anki-helper-note-types~
 
    模板名称及其对应的字段
 *** file-local 的变量
