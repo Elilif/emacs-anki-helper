@@ -191,7 +191,8 @@ See `org-export-filter-latex-fragment-functions' for details."
     (deleteNotes . anki-helper--action-deletenotes)
     (updateNote . anki-helper--action-updatenote)
     (multi . anki-helper--action-multi)
-    (guiBrowse . anki-helper--action-guibrowse)))
+    (guiBrowse . anki-helper--action-guibrowse)
+    (sync . anki-helper--action-sync)))
 
 (defun anki-helper--get-note-fields (note)
   (cdr (assoc note anki-helper-note-types)))
@@ -257,6 +258,10 @@ See `org-export-filter-latex-fragment-functions' for details."
   (anki-helper--body
    "guiBrowse"
    `(("query" . ,query))))
+
+(defun anki-helper--action-sync (&rest _args)
+  "Synchronizes the local Anki collections with AnkiWeb."
+  (anki-helper--body "sync"))
 
 (defun anki-helper--get-global-keyword (keyword)
   "Get global property by KEYWORD."
@@ -829,6 +834,12 @@ See `anki-helper-entry-delete-all' for details."
   (if-let ((maybe-id (org-entry-get nil anki-helper-prop-note-id)))
       (anki-helper-request 'guiBrowse (concat "nid:" maybe-id))
     (message "anki-helper: please select a note.")))
+
+;;;###autoload
+(defun anki-helper-sync ()
+  "Synchronizes the local Anki collections with AnkiWeb."
+  (interactive)
+  (anki-helper-request 'sync nil))
 
 ;;;###autoload
 (defun anki-helper-set-front-region ()
