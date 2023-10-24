@@ -639,6 +639,24 @@ NEW-FIELDS is a string."
           "\n+")))
   note)
 
+(defun anki-helper--transform-notes (notes)
+  (let* ((hash (md5 (format "%s%s" (random) (recent-keys))))
+         (html (anki-helper--org2html
+                (mapconcat
+                 (lambda (note)
+                   (let ((fields (anki-helper--note-fields note))
+                         (hash (anki-helper--note-hash note)))
+                     (format "\n\n%s\n\n"
+                             (anki-helper--filelds2string
+                              fields
+                              (format "\n\n%s\n\n" hash)))))
+                 notes (format "\n\n%s\n\n" hash)))))
+    (seq-mapn #'anki-helper--note-update-fields
+              notes
+              (string-split html
+                            (format "<p>\n%s\n</p>" hash)
+                            t "\n+"))))
+
 (defun anki-helper--entry-get-all (match &optional skip)
   "Gel all Anki entries in the current buffer.
 
@@ -650,22 +668,7 @@ See `org-map-entries' for details about MATCH and SKIP."
                       match
                       nil
                       (or skip anki-helper-skip-function)))
-              (hash (md5 (format "%s%s" (random) (recent-keys))))
-              (html (anki-helper--org2html
-                     (mapconcat
-                      (lambda (note)
-                        (let ((fields (anki-helper--note-fields note))
-                              (hash (anki-helper--note-hash note)))
-                          (format "\n\n%s\n\n"
-                                  (anki-helper--filelds2string
-                                   fields
-                                   (format "\n\n%s\n\n" hash)))))
-                      notes (format "\n\n%s\n\n" hash))))
-              (new-notes (seq-mapn #'anki-helper--note-update-fields
-                                   notes
-                                   (string-split html
-                                                 (format "<p>\n%s\n</p>" hash)
-                                                 t "\n+")))
+              (new-notes (anki-helper--transform-notes notes))
               (positions (mapcar (lambda (note)
                                    (anki-helper--note-orig-pos note))
                                  notes)))
