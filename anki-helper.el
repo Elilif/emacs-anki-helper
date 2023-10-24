@@ -768,7 +768,7 @@ there are any changes.
 
 See `org-map-entries', `anki-helper-entry-modified-p' and
 `anki-helper--get-match' for details."
-  (interactive "p")
+  (interactive "P")
   (if-let* ((result (anki-helper--entry-get-all
                      (concat (format "%s={.+}" anki-helper-prop-note-id)
                              (anki-helper--get-match))
@@ -789,7 +789,7 @@ With a prefix argument FORCE, update current note no matter whether
 there are any changes.
 
 See `anki-helper-entry-update-all' for details."
-  (interactive "p")
+  (interactive "P")
   (save-excursion
     (save-restriction
       (org-narrow-to-subtree)
