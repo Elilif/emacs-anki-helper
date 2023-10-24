@@ -675,10 +675,9 @@ See `org-map-entries' for details about MATCH and SKIP."
   "Return t if the entry is modified, else nil."
   (let ((orig-hash (org-entry-get nil anki-helper-prop-note-hash))
         (new-hash (anki-helper--get-note-hash)))
-    (if (and (if anki-helper-skip-function
-                 (funcall anki-helper-skip-function)
-               t)
-             (string= orig-hash new-hash))
+    (if (or (when anki-helper-skip-function
+              (funcall anki-helper-skip-function))
+            (string= orig-hash new-hash))
         (point))))
 
 (cl-defun anki-helper-create-note (contents &key id
