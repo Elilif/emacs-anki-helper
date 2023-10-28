@@ -508,6 +508,8 @@ See `anki-helper-request' for details of ACTION and BODY."
   (let* ((func (alist-get action anki-helper-action-alist))
          (file-name (make-temp-file "anki-helper")))
     (with-temp-file file-name
+      (setq buffer-file-coding-system 'utf-8)
+      (set-buffer-multibyte t)
       (insert (json-encode (funcall func body))))
     (list
      anki-helper-ankiconnnect-listen-address
