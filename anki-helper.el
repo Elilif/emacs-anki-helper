@@ -506,7 +506,7 @@ PROCESS and _STATUS are process parameters."
 
 See `anki-helper-request' for details of ACTION and BODY."
   (let* ((func (alist-get action anki-helper-action-alist))
-         (file-name (make-temp-name "/tmp/anki")))
+         (file-name (make-temp-file "anki-helper")))
     (with-temp-file file-name
       (insert (json-encode (funcall func body))))
     (list
