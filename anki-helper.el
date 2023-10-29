@@ -513,6 +513,7 @@ See `anki-helper-request' for details of ACTION and BODY."
       (insert (json-encode (funcall func body))))
     (list
      anki-helper-ankiconnnect-listen-address
+     "--silent"
      (format "-X%s" "POST")
      (format "-d@%s" file-name))))
 
