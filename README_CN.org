@@ -166,41 +166,4 @@ anki-helper 提供了几个 API ：
 详见 ~anki-helper-callback-alist~
 * 更多自定义
 ** 在卡片中添加指向原文所在条目的链接
-1. 在 Anki 中安装插件 [[https://ankiweb.net/shared/info/879473266][Open link in external Program]] 并创建自己的 note type
-   
-   本例中 note type 的名字是 "Basic (with backlink)" ，其四个字段分别为： Front, Back, Source 和 Location
-2. 执行下述代码
-   #+begin_src elisp
-     (server-start)
-
-     (defun anki-helper--entry-locate (filename entry-name)
-       (find-file filename)
-       (let* ((data (org-element-parse-buffer))
-              (pos (org-element-map data '(headline)
-                     (lambda (elt)
-                       (when (string= (org-element-property :raw-value elt)
-                                      entry-name)
-                         (org-element-property :begin elt)))
-                     nil t)))
-         (goto-char pos)
-         (org-reveal)))
-
-     (defun anki-helper-fields-get-with-backlink ()
-       "Get filed info of the current entry with backlink."
-       (let* ((front-and-back (anki-helper-fields-get-default))
-              (filename (file-name-nondirectory (buffer-file-name)))
-              (elt (plist-get (org-element-at-point) 'headline))
-              (entry (plist-get elt :raw-value)))
-         `(,@front-and-back ,filename ,entry)))
-
-     (setq anki-helper-note-types '(("Basic (with backlink)" "Front" "Back" "Source" "Location"))
-           anki-helper-fields-get-alist '(("Basic (with backlink)" . anki-helper-fields-get-with-backlink))
-           anki-helper-default-note-type "Basic (with backlink)")
-#+end_src
-3. 设置打开 org 文件的外部程序
-   需要在下面两栏中进行如下设置：
-   - comand/program :: ~/usr/local/bin/emacsclient~
-   - command open on page arguments :: ~-e '(anki-helper--entry-locate PATH "PAGE")'~
-
-效果如下：
-[[examples/notes-with-backlink.gif]]
+详见：[[https://github.com/hwiorn/anki-open-org-note][GitHub - hwiorn/anki-open-org-note]]
