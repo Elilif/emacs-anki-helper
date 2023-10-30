@@ -886,12 +886,13 @@ more informations."
                           (overlay-start mouse-secondary-overlay)
                           (overlay-end mouse-secondary-overlay))))
          (back (funcall back-transformer
-                        (buffer-substring-no-properties beg end))))
-    (if (derived-mode-p 'org-mode)
-        (anki-helper-request 'addNotes (anki-helper-create-notes
-                                        (list (anki-helper-create-note
-                                               (list front back)))))
-      (anki-helper-request 'addNote (anki-helper-create-note (list front back))))
+                        (buffer-substring-no-properties beg end)))
+         (contents (list front back)))
+    (anki-helper-request 'addNote (anki-helper-create-note
+                                   (if (derived-mode-p 'org-mode)
+                                       (mapcar #'anki-helper--org2html
+                                               contents)
+                                     contents)))
     (delete-overlay mouse-secondary-overlay)
     (deactivate-mark)))
 
