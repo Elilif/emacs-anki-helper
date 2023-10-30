@@ -887,7 +887,11 @@ more informations."
                           (overlay-end mouse-secondary-overlay))))
          (back (funcall back-transformer
                         (buffer-substring-no-properties beg end))))
-    (anki-helper-request 'addNote (anki-helper-create-note (list front back)))
+    (if (derived-mode-p 'org-mode)
+        (anki-helper-request 'addNotes (anki-helper-create-notes
+                                        (list (anki-helper-create-note
+                                               (list front back)))))
+      (anki-helper-request 'addNote (anki-helper-create-note (list front back))))
     (delete-overlay mouse-secondary-overlay)
     (deactivate-mark)))
 
