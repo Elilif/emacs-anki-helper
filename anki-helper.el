@@ -207,7 +207,7 @@ See `org-export-filter-latex-fragment-functions' for details."
       ("version" . 6))))
 
 (defun anki-helper--note-to-json (note)
-  "Create an NOTE json structure."
+  "Create a NOTE json structure."
   `(("deckName" . ,(anki-helper--note-deck note))
     ("modelName" . ,(anki-helper--note-model note))
     ("fields"    . ,(anki-helper--note-fields note))
@@ -240,21 +240,21 @@ See `org-export-filter-latex-fragment-functions' for details."
        ("tags" . ,(or (anki-helper--note-tags note) "")))))))
 
 (defun anki-helper--action-multi (actions)
-  "Create an `nulti' json structure for ACTIONS."
+  "Create a `nulti' json structure for ACTIONS."
   (anki-helper--body
    "multi"
    `(("actions" .
       (,@actions)))))
 
 (defun anki-helper--action-deletenotes (ids)
-  "Create an `deleteNotes' json structure for IDS."
+  "Create a `deleteNotes' json structure for IDS."
   (anki-helper--body
    "deleteNotes"
    `(("notes" .
       (,@ids)))))
 
 (defun anki-helper--action-guibrowse (query)
-  "Create an `guiBrowse' json structure for IDS."
+  "Create a `guiBrowse' json structure for IDS."
   (anki-helper--body
    "guiBrowse"
    `(("query" . ,query))))
@@ -587,7 +587,7 @@ entry."
   (mapconcat #'cdr fields seprator))
 
 (defun anki-helper--entry-get-content ()
-  "Create a `anki-helper--note' struct for current Anki entry."
+  "Create an `anki-helper--note' struct for current Anki entry."
   (let* ((note-type (anki-helper--find-prop
                      anki-helper-note-type
                      anki-helper-default-note-type))
