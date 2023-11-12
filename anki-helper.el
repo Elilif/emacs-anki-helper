@@ -102,7 +102,8 @@ global property."
   '((anki-helper-entry-delete . anki-helper-entry-delete-callback)
     (anki-helper-entry-delete-all . anki-helper-entry-delete-callback)
     (anki-helper-entry-sync-all . anki-helper-entry-sync-callback)
-    (anki-helper-entry-update-all . anki-helper-entry-update-callback))
+    (anki-helper-entry-update-all . anki-helper-entry-update-callback)
+    (anki-helper-find-notes . anki-helper-find-notes-callback))
   "Alist of (FUNCTION . CALLBACK) pairs.
 
 Used by `anki-helper--curl-sentinel'.
@@ -192,6 +193,7 @@ See `org-export-filter-latex-fragment-functions' for details."
     (updateNote . anki-helper--action-updatenote)
     (multi . anki-helper--action-multi)
     (guiBrowse . anki-helper--action-guibrowse)
+    (findNotes . anki-helper--action-findNotes)
     (sync . anki-helper--action-sync)))
 
 (defun anki-helper--get-note-fields (note)
@@ -257,6 +259,12 @@ See `org-export-filter-latex-fragment-functions' for details."
   "Create a `guiBrowse' json structure for IDS."
   (anki-helper--body
    "guiBrowse"
+   `(("query" . ,query))))
+
+(defun anki-helper--action-findNotes (query)
+  "Create a `findNotes' json structure for QUERY."
+  (anki-helper--body
+   "findNotes"
    `(("query" . ,query))))
 
 (defun anki-helper--action-sync (&rest _args)
@@ -477,6 +485,12 @@ See `org-export-filter-latex-fragment-functions' for details."
 
 (defun anki-helper-entry-delete-callback (info result)
   (run-with-idle-timer 1 nil #'anki-helper--entry-delete-callback info result))
+
+(defun anki-helper-find-notes-callback (_info result)
+  (if result
+      (let ((query (string-join (mapcar #'number-to-string result) ",")))
+        (anki-helper-request 'guiBrowse (concat "nid:" query)))
+    (message "anki-helper: Query failed!")))
 
 (defun anki-helper--curl-sentinel (process _status)
   "Process sentinel for AnkiConnect curl requests.
@@ -839,6 +853,14 @@ See `anki-helper-entry-delete-all' for details."
   (if-let ((maybe-id (org-entry-get nil anki-helper-prop-note-id)))
       (anki-helper-request 'guiBrowse (concat "nid:" maybe-id))
     (message "anki-helper: please select a note.")))
+
+;;;###autoload
+(defun anki-helper-find-notes (query)
+  "Returns an array of note IDs for a given QUERY."
+  (interactive "sQuery: ")
+  (if (string-empty-p query)
+      (message "anki-helper: empty query!")
+    (anki-helper-request 'findNotes query (list :command 'anki-helper-find-notes))))
 
 ;;;###autoload
 (defun anki-helper-sync ()
