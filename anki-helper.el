@@ -25,12 +25,22 @@
 (require 'org-macs)
 (require 'json)
 
-(defconst anki-helper-prop-note-id "ANKI_NOTE_ID")
-(defconst anki-helper-prop-note-hash "ANKI_NOTE_HASH")
-(defconst anki-helper-prop-deck "ANKI_DECK")
-(defconst anki-helper-match "ANKI_MATCH")
-(defconst anki-helper-note-type "ANKI_NOTE_TYPE")
-(defconst anki-helper-prop-global-tags "ANKI_TAGS")
+(defconst anki-helper-prop-note-id "ANKI_NOTE_ID"
+  "Note ID used for identify an Anki note.")
+(defconst anki-helper-prop-note-hash "ANKI_NOTE_HASH"
+  "Used to determine whether the note has been modified.")
+(defconst anki-helper-prop-deck "ANKI_DECK"
+  "Specify Anki deck name.")
+(defconst anki-helper-match "ANKI_MATCH"
+  "A tags/property/todo match as it is used in the agenda tags view.
+Only headlines that are matched by this query will be considered
+during the iteration.
+
+See Info node `(org) Matching tags and properties'.")
+(defconst anki-helper-note-type "ANKI_NOTE_TYPE"
+  "Specify the Anki note type.")
+(defconst anki-helper-prop-global-tags "ANKI_TAGS"
+  "Specify Anki note tags.")
 
 (defgroup anki-helper nil
   "Customizations for anki-helper."
@@ -42,23 +52,35 @@
   :group 'anki-helper)
 
 (defcustom anki-helper-default-note-type "Basic"
-  "Default note type."
+  "Default note type.
+
+This variable will be used if none is set on the org item nor as
+a global property."
   :type 'string
   :group 'anki-helper)
 
 (defcustom anki-helper-default-tags nil
-  "Default tags."
+  "Default tags.
+
+This variable will be used if none is set on the org item nor as
+a global property."
   :type '(repeat string)
   :group 'anki-helper)
 
 (defcustom anki-helper-allow-duplicates nil
-  "Allow duplicates."
+  "When set to t, allow duplicate notes."
   :type '(choice (const :tag "Yes" t)
                  (const :tag "No" nil))
   :group 'anki-helper)
 
 (defcustom anki-helper-default-match nil
-  "Default match used in `org-map-entries` for sync all."
+  "A tags/property/todo match as it is used in the agenda tags view.
+Only headlines that are matched by this query will be considered
+during the iteration. See Info node `(org) Matching tags and
+properties'.
+
+This variable will be used if none is set on the org item nor as
+global property."
   :type 'string
   :group 'anki-helper)
 
@@ -66,7 +88,7 @@
   "Default deck name.
 
 This variable will be used if none is set on the org item nor as
-global property."
+a global property."
   :type 'string
   :group 'anki-helper)
 
@@ -197,6 +219,7 @@ See `org-export-filter-latex-fragment-functions' for details."
     (sync . anki-helper--action-sync)))
 
 (defun anki-helper--get-note-fields (note)
+  "Get note fields for NOTE."
   (cdr (assoc note anki-helper-note-types)))
 
 (defun anki-helper--body (action &optional params)
@@ -242,7 +265,7 @@ See `org-export-filter-latex-fragment-functions' for details."
        ("tags" . ,(or (anki-helper--note-tags note) "")))))))
 
 (defun anki-helper--action-multi (actions)
-  "Create a `nulti' json structure for ACTIONS."
+  "Create a `multi' json structure for ACTIONS."
   (anki-helper--body
    "multi"
    `(("actions" .
@@ -256,7 +279,7 @@ See `org-export-filter-latex-fragment-functions' for details."
       (,@ids)))))
 
 (defun anki-helper--action-guibrowse (query)
-  "Create a `guiBrowse' json structure for IDS."
+  "Create a `guiBrowse' json structure for QUERY."
   (anki-helper--body
    "guiBrowse"
    `(("query" . ,query))))
@@ -292,6 +315,7 @@ See `org-export-filter-latex-fragment-functions' for details."
                name)))))
 
 (defun anki-helper--get-tags ()
+  "Get all tags for the current note."
   (append
    (delete-dups
     (split-string
@@ -305,6 +329,9 @@ See `org-export-filter-latex-fragment-functions' for details."
    anki-helper-default-tags))
 
 (defun anki-helper--get-match ()
+  "Compute the match argument of `org-map-entries'.
+
+See `anki-helper-match' and `anki-helper-default-match'."
   (let ((file-global (anki-helper--get-global-keyword anki-helper-match)))
     (if (stringp file-global)
         file-global

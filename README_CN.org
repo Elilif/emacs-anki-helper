@@ -96,7 +96,7 @@ org-anki 的缺点如下：
    默认的卡片标签
 5. ~anki-helper-default-match~
 
-   用于筛选满足条件的 entry ，详见 ~org-map-entries~
+   用于筛选满足条件的 entry ，详见变量文档。
 6. ~anki-helper-skip-function~
 
    用于判断是否跳过某个 entry ，详见 ~org-map-entries~
@@ -116,7 +116,31 @@ org-anki 的缺点如下：
 4. ~#+ANKI_TAGS:~
 
 
-上述关键字分别对应相应的全局变量
+上述关键字分别对应相应的全局变量。
+
+比如说您有如下 org 文件：
+
+#+begin_example
+#+ANKI_DECK: Default
+#+ANKI_MATCH: TODO="TODO"|+DATE="today"
+#+ANKI_NOTE_TYPE: Basic
+#+ANKI_TAGS: test
+
+,* test note 1
+back side
+,* TODO test note 2
+back side
+,* test note 3
+:PROPERTIES:
+:DATE:     today
+:END:
+back side
+,* test note 4
+back side
+#+end_example
+
+那么使用 ~anki-helper-entry-sync-all~ 只会创建两张卡片： =test note 2= 和 =test note
+3= 。
 *** Properties
 1. ~ANKI_NOTE_TYPE~
 2. ~ANKI_DECK~
