@@ -589,16 +589,16 @@ entry."
 
 (defun anki-helper-fields-get-default ()
   "Default function for get filed info of the current entry."
-  (let* ((elt (plist-get (org-element-at-point) 'headline))
-         (front (plist-get elt :raw-value))
-         (contents-begin (plist-get elt :contents-begin))
-         (robust-begin (or (plist-get elt :robust-begin)
+  (let* ((elt (org-element-at-point))
+         (front (org-element-property :title elt))
+         (contents-begin (org-element-property :contents-begin elt))
+         (robust-begin (or (org-element-property :robust-begin elt)
                            contents-begin))
          (beg (if (or (= contents-begin robust-begin)
                       (= (+ 2 contents-begin) robust-begin))
                   contents-begin
                 (1+ robust-begin)))
-         (contents-end (plist-get elt :contents-end))
+         (contents-end (org-element-property :contents-end elt))
          (back (buffer-substring-no-properties
                 beg (1- contents-end))))
     (list front back)))
