@@ -26,7 +26,7 @@
 (require 'json)
 
 (defconst anki-helper-prop-note-id "ANKI_NOTE_ID"
-  "Note ID used for identify an Anki note.")
+  "Note ID used to identify an Anki note.")
 (defconst anki-helper-prop-note-hash "ANKI_NOTE_HASH"
   "Used to determine whether the note has been modified.")
 (defconst anki-helper-prop-deck "ANKI_DECK"
@@ -588,7 +588,7 @@ entry."
 ;;;; fields
 
 (defun anki-helper-fields-get-default ()
-  "Default function for get filed info of the current entry."
+  "Default function for getting filed info of the current entry."
   (let* ((elt (org-element-at-point))
          (front (org-element-property :title elt))
          (contents-begin (org-element-property :contents-begin elt))
@@ -604,7 +604,7 @@ entry."
     (list front back)))
 
 (defun anki-helper-fields-get-cloze ()
-  "Default function for get filed info of the current entry for
+  "Default function for getting filed info of the current entry for
 \"Cloze\" note-type."
   (let* ((pair (anki-helper-fields-get-default))
          (back (cadr pair)))
