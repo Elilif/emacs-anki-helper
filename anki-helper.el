@@ -513,10 +513,10 @@ See `anki-helper-match' and `anki-helper-default-match'."
 (defun anki-helper-entry-delete-callback (info result)
   (run-with-idle-timer 1 nil #'anki-helper--entry-delete-callback info result))
 
-(defun anki-helper-find-notes-callback (_info result)
+(defun anki-helper-find-notes-callback (info result)
   (if result
-      (let ((query (string-join (mapcar #'number-to-string result) ",")))
-        (anki-helper-request 'guiBrowse (concat "nid:" query)))
+      (let ((query info))
+        (anki-helper-request 'guiBrowse query))
     (message "anki-helper: Query failed!")))
 
 (defun anki-helper--curl-sentinel (process _status)
@@ -887,7 +887,8 @@ See `anki-helper-entry-delete-all' for details."
   (interactive "sQuery: ")
   (if (string-empty-p query)
       (message "anki-helper: empty query!")
-    (anki-helper-request 'findNotes query (list :command 'anki-helper-find-notes))))
+    (anki-helper-request 'findNotes query (list :command 'anki-helper-find-notes
+                                                :orig-info query))))
 
 ;;;###autoload
 (defun anki-helper-sync ()
