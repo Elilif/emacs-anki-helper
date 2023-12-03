@@ -170,6 +170,10 @@ anki-helper 默认提供了一系列函数来对 entry 类型的卡片进行操�
 6. ~anki-helper-entry-update-all~
 
    更新当前 buffer 中所有修改过的卡片。
+
+7. ~anki-helper-entry-browse~
+
+   在 Anki 中浏览当前 entry
 ** 非 entry 类型的卡片
 anki-helper 提供了几个 API ：
 1. ~anki-helper-request~
@@ -183,6 +187,10 @@ anki-helper 提供了几个 API ：
 
 具体效果：
 [[examples/make-card-interactively.gif]]
+** 杂项
+1. ~anki-helper-find-notes~
+
+   在 Anki 中搜索指定 QUERY
 * 修改默认的行为
 ** 修改模板字段填充方式
 变量 ~anki-helper-fields-get-alist~ 设置了两个基本的字段获取函数：~anki-helper-fields-get-default~ 用于 Anki 默认的 Basic 模板，使用标题行为卡片正面，内容为卡片反面、~anki-helper-fields-get-cloze~ 用于 Anki 默认的 Cloze 模板，使用标题下的内容来填充 ~Text~ 字段，~Back Extra~ 字段为标题行。您可以定义自己的字段获取函数，详见 ~anki-helper-fields-get-alist~ 的文档。

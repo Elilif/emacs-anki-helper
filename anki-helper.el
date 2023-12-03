@@ -883,7 +883,7 @@ See `anki-helper-entry-delete-all' for details."
 
 ;;;###autoload
 (defun anki-helper-find-notes (query)
-  "Returns an array of note IDs for a given QUERY."
+  "Invokes the Card Browser dialog and searches for a given QUERY."
   (interactive "sQuery: ")
   (if (string-empty-p query)
       (message "anki-helper: empty query!")

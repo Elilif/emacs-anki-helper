@@ -160,10 +160,11 @@ A series of functions are provided by default to operate on cards of the entry t
 6. ~anki-helper-entry-update-all~
 
    Update all cards in the current buffer that are modified.
-   
+
 7. ~anki-helper-entry-browse~
 
    Browse entry at point on Anki's browser dialog with searching nid.
+      
 ** Card that are not entries.
 anki-helper provides several APIs：
 1. ~anki-helper-request~
@@ -176,8 +177,10 @@ Please refer to the function documentation for specific usage details.
 As an example, you can refer to the functions =anki-helper-set-front-region= and =anki-helper-make-two-sided-card=, which provide an interactive card-making method:
 
 [[examples/make-card-interactively.gif]]
+** Misc
+1. ~anki-helper-find-notes~
 
-
+   Invokes the Card Browser dialog and searches for a given QUERY. 
 
 * Change the default behavior
 ** Modify template field filling method
