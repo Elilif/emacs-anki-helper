@@ -590,7 +590,8 @@ entry."
 (defun anki-helper-fields-get-default ()
   "Default function for getting filed info of the current entry."
   (let* ((elt (org-element-at-point))
-         (front (org-element-property :title elt))
+         (title (org-element-property :title elt))
+         (front (or (car-safe title) title))
          (contents-begin (org-element-property :contents-begin elt))
          (robust-begin (or (org-element-property :robust-begin elt)
                            contents-begin))
