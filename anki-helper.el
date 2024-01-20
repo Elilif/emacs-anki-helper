@@ -800,7 +800,7 @@ See `org-map-entries', `anki-helper-skip-function' and
 
 See `anki-helper-entry-sync-all' for details."
   (interactive)
-  (save-excursion
+  (save-window-excursion
     (save-restriction
       (org-narrow-to-subtree)
       (anki-helper-entry-sync-all))))
@@ -836,7 +836,7 @@ there are any changes.
 
 See `anki-helper-entry-update-all' for details."
   (interactive "P")
-  (save-excursion
+  (save-window-excursion
     (save-restriction
       (org-narrow-to-subtree)
       (anki-helper-entry-update-all force))))
