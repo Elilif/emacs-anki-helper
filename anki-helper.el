@@ -6,7 +6,7 @@
 ;; URL: https://github.com/Elilif/emacs-anki-helper
 ;; Keywords: flashcards
 ;; Version: 1.0.0
-;; Package-Requires: ((emacs "29.1"))
+;; Package-Requires: ((emacs "28.1"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -353,7 +353,7 @@ See `anki-helper-match' and `anki-helper-default-match'."
                                        (org-element-property :value content))))
                            (make-string (org-element-property :post-blank elt)
                                         32))))
-               data)))
+               data "")))
 
 (defun anki-helper--copy-ltximg (latex)
   "Copy the preview image of LATEX to the Anki media directory."
@@ -468,7 +468,7 @@ See `anki-helper-match' and `anki-helper-default-match'."
          (fields (anki-helper--entry-get-fields note-type))
          (fields-string (anki-helper--filelds2string fields ""))
          (tags (anki-helper--get-tags)))
-    (md5 (mapconcat #'identity (push fields-string tags)))))
+    (md5 (mapconcat #'identity (push fields-string tags) ""))))
 
 (defun anki-helper-entry-set-hash ()
   (org-set-property anki-helper-prop-note-hash
@@ -676,7 +676,7 @@ NEW-FIELDS is a string."
   (setf (cl-struct-slot-value 'anki-helper--note 'fields note)
         (anki-helper--create-fields
          (anki-helper--note-model note)
-         (string-split
+         (split-string
           new-fields
           (format "<p>\n%s\n</p>" (anki-helper--note-hash note))
           nil
@@ -697,7 +697,7 @@ NEW-FIELDS is a string."
                  notes (format "\n\n%s\n\n" hash)))))
     (seq-mapn #'anki-helper--note-update-fields
               notes
-              (string-split html
+              (split-string html
                             (format "<p>\n%s\n</p>" hash)
                             t "\n+"))))
 
@@ -776,7 +776,7 @@ MODEL is a string, specifying the note type. Use
 
     (seq-mapn #'anki-helper--note-update-fields
               notes
-              (string-split html (format "<p>\n%s\n</p>" hash) t "\n+"))))
+              (split-string html (format "<p>\n%s\n</p>" hash) t "\n+"))))
 
 ;;;###autoload
 (defun anki-helper-entry-sync-all ()
